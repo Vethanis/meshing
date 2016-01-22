@@ -34,7 +34,23 @@ float box(const glm::vec3& p, const glm::vec3& b){
 float map(const glm::vec3& p){
 	//return sphere(p, 0.5f);
 	//return box(p, vec3(1.0f));
-	return glm::min(sphere(p, 0.7f), box(p, vec3(0.5f)));
+	vector<float> parts;
+	parts.push_back(sphere(p, 0.7f)); // body
+	parts.push_back(sphere(p-vec3(0.7f, 0.1f, 0.0f), 0.4f)); // head
+	parts.push_back(sphere(p-vec3(1.0f, 0.0f, 0.0f), 0.2f)); // snout
+	parts.push_back(sphere(p-vec3(1.1f, 0.2f, 0.1f), 0.05f)); // near eye
+	parts.push_back(sphere(p-vec3(1.1f, 0.2f, -0.1f), 0.05f)); // far eye
+	parts.push_back(sphere(p-vec3(0.9f, 0.4f, 0.2f), 0.1f)); // near ear
+	parts.push_back(sphere(p-vec3(0.9f, 0.4f, -0.2f), 0.1f)); // far ear
+	parts.push_back(sphere(p-vec3(0.4f, -0.4f, 0.4f), 0.2f));	// legs
+	parts.push_back(sphere(p-vec3(0.4f, -0.4f, -0.4f), 0.2f));	// legs
+	parts.push_back(sphere(p-vec3(-0.4f, -0.4f, 0.4f), 0.2f));	// legs
+	parts.push_back(sphere(p-vec3(-0.4f, -0.4f, -0.4f), 0.2f));	// legs
+	parts.push_back(sphere(p-vec3(-0.7f, 0.1f, 0.0f), 0.1f));	// tail
+	float min = parts[0];
+	for(auto i : parts)
+		min = (i < min) ? i : min;
+	return min;
 }
 
 void fillCells(VertexBuffer& vb, const glm::vec3& min, const glm::vec3& max, float dim){
@@ -58,7 +74,7 @@ void fillCells(VertexBuffer& vb, const glm::vec3& min, const glm::vec3& max, flo
 						map(i+dy) - map(i-dy),
 						map(i+dz) - map(i-dz)));
 					if(abs(dis) < threshold*0.001f){
-						vb.push_back(Vertex(i, N, vec3(1.0f), psize));
+						vb.push_back(Vertex(i, N, vec3(1.0f, 0.5f, 0.5f), psize));
 						break;
 					}
 					i -= N * dis;
@@ -103,7 +119,7 @@ int main(int argc, char* argv[]){
 	Mesh mesh;
 	
 	VertexBuffer vb;
-	fillCells(vb, vec3(-1.0f), vec3(1.0f), 20.0f);
+	fillCells(vb, vec3(-2.0f), vec3(2.0f), 100.0f);
 	cout << vb.size() << endl;
 	mesh.upload(vb);
 	vb.clear();
