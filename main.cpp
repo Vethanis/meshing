@@ -34,7 +34,38 @@ float box(const glm::vec3& p, const glm::vec3& b){
 float map(const glm::vec3& p){
 	//return sphere(p, 0.5f);
 	//return box(p, vec3(1.0f));
-	return glm::max(sphere(p, 0.7f), box(p, vec3(0.5f)));
+	return glm::min(sphere(p, 0.7f), box(p, vec3(0.5f)));
+}
+
+void fillCells(VertexBuffer& vb, const glm::vec3& min, const glm::vec3& max, float dim){
+	vec3 dx(0.01f, 0.0f, 0.0f);
+	vec3 dy(0.0f, 0.01f, 0.0f);
+	vec3 dz(0.0f, 0.0f, 0.01f);
+	vec3 ddim = max - min;
+	vec3 pitch = ddim / dim;
+	float pavg = (pitch.x+pitch.y+pitch.z)*0.3333333f;
+	float psize = pavg * 1024.0f;
+	float threshold = pavg;
+	for(float z = min.z; z <= max.z; z += pitch.z){
+		for(float y = min.y; y <= max.y; y += pitch.y){
+			for(float x = min.x; x <= max.x; x += pitch.x){
+				vec3 i(x, y, z);
+				if(map(i) > threshold)continue;
+				for(int j = 0; j < 60; j++){
+					float dis = map(i);
+					vec3 N = normalize(vec3(
+						map(i+dx) - map(i-dx),
+						map(i+dy) - map(i-dy),
+						map(i+dz) - map(i-dz)));
+					if(abs(dis) < threshold*0.001f){
+						vb.push_back(Vertex(i, N, vec3(1.0f), psize));
+						break;
+					}
+					i -= N * dis;
+				}
+			}
+		}
+	}
 }
 
 double frameBegin(unsigned& i, double& t){
@@ -72,37 +103,7 @@ int main(int argc, char* argv[]){
 	Mesh mesh;
 	
 	VertexBuffer vb;
-	vector<vec3> points;
-	vec3 dx(0.1f, 0.0f, 0.0f);
-	vec3 dy(0.0f, 0.1f, 0.0f);
-	vec3 dz(0.0f, 0.0f, 0.1f);
-	for(int z = -100; z < 100; z++){
-		float fz = z * 0.05f;
-		for(int y = -100; y < 100; y++){
-			float fy = y * 0.05f;
-			for(int x = -100; x < 100; x++){
-				float fx = x * 0.05f;
-				vec3 fv(fx, fy, fz);
-				if(map(fv) > 0.1f)continue;
-				points.push_back(fv);
-			}
-		}
-	}
-	for(auto& i : points){
-		for(int j = 0; j < 300; j++){
-			float dis = map(i);
-			vec3 N = vec3(
-				map(i+dx) - map(i-dx),
-				map(i+dy) - map(i-dy),
-				map(i+dz) - map(i-dz));
-			if(abs(dis) < 0.01f){
-				vb.push_back(Vertex(i, normalize(N), vec3(1.0f), 50.0f));
-				break;
-			}
-			i -= normalize(N) * dis;
-		}
-	}
-	points.clear();
+	fillCells(vb, vec3(-1.0f), vec3(1.0f), 20.0f);
 	cout << vb.size() << endl;
 	mesh.upload(vb);
 	vb.clear();
