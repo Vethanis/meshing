@@ -75,7 +75,7 @@ int main(int argc, char* argv[]){
 		unibuf.upload(&uni, sizeof(uni));
 		
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_Q) && waitcounter < 0){
-			waitcounter = 15;
+			waitcounter = 10;
 			insert(&csgroot, CSG(camera.getEye()+3.0f*camera.getAxis(), vec3(0.333333f), &sphere, 1));
 		}
 		
