@@ -49,12 +49,8 @@ int main(int argc, char* argv[]){
 	Window window(WIDTH, HEIGHT, 4, 3, "Meshing");
 	Input input(window.getWindow());
 	GLProgram colorProg("vert.glsl", "frag.glsl");
-    
-	Mesh mesh;
 	
 	CSGNode csgroot;
-	
-	VertexBuffer vb;
 	
 	Timer timer;
 	
@@ -79,19 +75,19 @@ int main(int argc, char* argv[]){
 		unibuf.upload(&uni, sizeof(uni));
 		
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_Q) && waitcounter < 0){
-			waitcounter = 30;
+			waitcounter = 15;
 			insert(&csgroot, CSG(camera.getEye()+3.0f*camera.getAxis(), vec3(0.333333f), &sphere, 1));
-			std::vector<CSGList*> lists;
-			getLists(lists, csgroot);
-			for(CSGList* lp : lists)
-				fillCells(vb, *lp, 15.0f);
-			mesh.upload(vb);
-			vb.clear();
 		}
+		
+		std::vector<CSGNode*> nodes;
+		collect(nodes, &csgroot);			
+		for(CSGNode* np : nodes)
+			if(np->old) np->remesh(15.0f);
 		
 		colorProg.bind();
 		//timer.begin();
-		mesh.draw();
+		for(CSGNode* np : nodes)
+			np->draw();
 		//timer.endPrint();
         window.swap();
     }
