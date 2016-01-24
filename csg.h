@@ -5,80 +5,183 @@
 #include <cfloat>
 #include <vector>
 
-inline float sphere(const glm::vec3& p, const glm::vec3& b){
-	return length(p) - b.x;
+struct SDF_Base{
+	virtual float func(const glm::vec3& c, const glm::vec3& p)=0;
+	virtual glm::vec3 min(const glm::vec3& c, const glm::vec3& p)=0;
+	virtual glm::vec3 max(const glm::vec3& c, const glm::vec3& p)=0;
+	virtual float blend(float a, float b, float r)=0;
+};
+
+inline float smin(float a, float b, float r){
+	glm::vec2 u = glm::max(glm::vec2(r + a,r + b), glm::vec2(0.0f));
+	return glm::min(-r, glm::max(a, b)) + glm::length(u);
+}
+inline float smax(float a, float b, float r){
+	return smin(a, -b, r);
 }
 
-inline float box(const glm::vec3& p, const glm::vec3& b){
-	glm::vec3 d = abs(p) - b;
-	return glm::min(glm::max(d.x, glm::max(d.y, d.z)), 0.0f) + glm::length(glm::max(d, 0.0f));
-}
+struct SphereAdd : public SDF_Base{
+	float func(const glm::vec3& p, const glm::vec3& b){
+		return length(p) - b.x;
+	}
+	glm::vec3 min(const glm::vec3& c, const glm::vec3& p){
+		return c - p.x;
+	}
+	glm::vec3 max(const glm::vec3& c, const glm::vec3& p){
+		return c + p.x;
+	}
+	float blend(float a, float b, float r){ 
+		return glm::min(a, b); 
+	}
+};
 
-typedef float (*SDF_Func)(const glm::vec3& c, const glm::vec3& p);
+struct SphereSAdd : public SDF_Base{
+	float func(const glm::vec3& p, const glm::vec3& b){
+		return length(p) - b.x;
+	}
+	glm::vec3 min(const glm::vec3& c, const glm::vec3& p){
+		return c - p.x;
+	}
+	glm::vec3 max(const glm::vec3& c, const glm::vec3& p){
+		return c + p.x;
+	}
+	float blend(float a, float b, float r){ 
+		return smin(a, b, r); 
+	}
+};
+
+struct SphereSub : public SDF_Base{
+	float func(const glm::vec3& p, const glm::vec3& b){
+		return length(p) - b.x;
+	}
+	glm::vec3 min(const glm::vec3& c, const glm::vec3& p){
+		return c - p.x;
+	}
+	glm::vec3 max(const glm::vec3& c, const glm::vec3& p){
+		return c + p.x;
+	}
+	float blend(float a, float b, float r){ 
+		return glm::max(a, b); 
+	}
+};
+
+struct SphereSSub : public SDF_Base{
+	float func(const glm::vec3& p, const glm::vec3& b){
+		return length(p) - b.x;
+	}
+	glm::vec3 min(const glm::vec3& c, const glm::vec3& p){
+		return c - p.x;
+	}
+	glm::vec3 max(const glm::vec3& c, const glm::vec3& p){
+		return c + p.x;
+	}
+	float blend(float a, float b, float r){ 
+		return smax(a, b, r); 
+	}
+};
+
+struct BoxAdd : public SDF_Base{
+	float func(const glm::vec3& p, const glm::vec3& b){
+		glm::vec3 d = abs(p) - b;
+		return glm::min(glm::max(d.x, glm::max(d.y, d.z)), 0.0f) + glm::length(glm::max(d, 0.0f));
+	}
+	glm::vec3 min(const glm::vec3& c, const glm::vec3& p){
+		return c - p;
+	}
+	glm::vec3 max(const glm::vec3& c, const glm::vec3& p){
+		return c + p;
+	}
+	float blend(float a, float b, float r){ 
+		return glm::min(a, b); 
+	}
+};
+
+struct BoxSAdd : public SDF_Base{
+	float func(const glm::vec3& p, const glm::vec3& b){
+		glm::vec3 d = abs(p) - b;
+		return glm::min(glm::max(d.x, glm::max(d.y, d.z)), 0.0f) + glm::length(glm::max(d, 0.0f));
+	}
+	glm::vec3 min(const glm::vec3& c, const glm::vec3& p){
+		return c - p;
+	}
+	glm::vec3 max(const glm::vec3& c, const glm::vec3& p){
+		return c + p;
+	}
+	float blend(float a, float b, float r){ 
+		return smin(a, b, r); 
+	}
+};
+
+struct BoxSub : public SDF_Base{
+	float func(const glm::vec3& p, const glm::vec3& b){
+		glm::vec3 d = abs(p) - b;
+		return glm::min(glm::max(d.x, glm::max(d.y, d.z)), 0.0f) + glm::length(glm::max(d, 0.0f));
+	}
+	glm::vec3 min(const glm::vec3& c, const glm::vec3& p){
+		return c - p;
+	}
+	glm::vec3 max(const glm::vec3& c, const glm::vec3& p){
+		return c + p;
+	}
+	float blend(float a, float b, float r){ 
+		return glm::max(a, b); 
+	}
+};
+
+struct BoxSSub : public SDF_Base{
+	float func(const glm::vec3& p, const glm::vec3& b){
+		glm::vec3 d = abs(p) - b;
+		return glm::min(glm::max(d.x, glm::max(d.y, d.z)), 0.0f) + glm::length(glm::max(d, 0.0f));
+	}
+	glm::vec3 min(const glm::vec3& c, const glm::vec3& p){
+		return c - p;
+	}
+	glm::vec3 max(const glm::vec3& c, const glm::vec3& p){
+		return c + p;
+	}
+	float blend(float a, float b, float r){ 
+		return smax(a, b, r); 
+	}
+};
+
+static SphereAdd SPHEREADD;
+static SphereSAdd SPHERESADD;
+static SphereSub SPHERESUB;
+static SphereSSub SPHERESSUB;
+static BoxAdd BOXADD;
+static BoxSAdd BOXSADD;
+static BoxSub BOXSUB;
+static BoxSSub BOXSSUB;
 
 struct CSG{
-	glm::vec3 center;
-	glm::vec3 params;
-	SDF_Func func;
+	glm::vec3 center, params;
+	SDF_Base* sdf;
+	float r;
 	int material;
-	CSG(const glm::vec3& c, const glm::vec3& p, SDF_Func f, int m)
-		: center(c), params(p), func(f), material(m){};
+	CSG(const glm::vec3& c, const glm::vec3& p, SDF_Base* sdf_obj, float rad=1.0f, int m=0)
+		: center(c), params(p), sdf(sdf_obj), r(rad), material(m){};
 	CSG(const CSG& o)
-		: center(o.center), params(o.params), func(o.func), material(o.material){};
+		: center(o.center), params(o.params), sdf(o.sdf), r(o.r), material(o.material){};
+	~CSG(){};
 	inline CSG& operator = (const CSG& other){
 		center = other.center;
 		params = other.params;
-		func = other.func;
+		sdf = other.sdf;
+		r = other.r;
 		material = other.material;
 		return *this;
 	}
-	inline float minX()const{
-		if(func == &sphere || func == &box){
-			return center.x - params.x;
-		}
-		return 0.0f;
+	float func(const glm::vec3& p)const{
+		return sdf->func(p-center, params);
 	}
-	inline float maxX()const{
-		if(func == &sphere || func == &box){
-			return center.x + params.x;
-		}
-		return 0.0f;
-	}	
-	inline float minY()const{
-		if(func == &sphere){
-			return center.y - params.x;
-		}
-		else if(func == &box){
-			return center.y - params.y;
-		}
-		return 0.0f;
+	glm::vec3 min()const{
+		return sdf->min(center, params);
 	}
-	inline float maxY()const{
-		if(func == &sphere){
-			return center.y + params.x;
-		}
-		else if(func == &box){
-			return center.y + params.y;
-		}
-		return 0.0f;
+	glm::vec3 max()const{
+		return sdf->max(center, params);
 	}
-	inline float minZ()const{
-		if(func == &sphere){
-			return center.z - params.x;
-		}
-		else if(func == &box){
-			return center.z - params.z;
-		}
-		return 0.0f;
-	}
-	inline float maxZ()const{
-		if(func == &sphere){
-			return center.z + params.x;
-		}
-		else if(func == &box){
-			return center.z + params.z;
-		}
-		return 0.0f;
+	float blend(float a, float b)const{
+		return sdf->blend(a, b, r);
 	}
 };
 
@@ -87,37 +190,16 @@ typedef std::vector<CSG> CSGList;
 inline void getBounds(CSGList& list, glm::vec3& lo, glm::vec3& hi){
 	lo = glm::vec3(FLT_MAX);
 	hi = glm::vec3(FLT_MIN);
-	SDF_Func sph = &sphere;
 	for(auto& i : list){
-		if(i.func == sph){
-			lo = glm::min(lo, i.center - i.params.x);
-			hi = glm::max(hi, i.center + i.params.x);
-		}
-		else{
-			lo = glm::min(lo, i.center - i.params);
-			hi = glm::min(hi, i.center + i.params);
-		}
+		lo = glm::min(lo, i.min());
+		hi = glm::max(hi, i.max());
 	}
-}
-
-inline float map(const glm::vec3& p, CSGList& list, int& material){
-	float min = FLT_MAX;
-	int mat = -1;
-	for(auto& i : list){
-		float f = i.func(p - i.center, i.params);
-		if(f < min){
-			min = f;
-			mat = i.material;
-		}
-	}
-	material = mat;
-	return min;
 }
 
 inline float map(const glm::vec3& p, CSGList& list){
 	float min = FLT_MAX;
 	for(auto& i : list)
-		min = glm::min(min, i.func(p - i.center, i.params));
+		min = i.blend(min, i.func(p));
 	return min;
 }
 
@@ -141,38 +223,6 @@ inline void fillCells(VertexBuffer& vb, CSGList& list, float spu){
 						map(i+dy, list) - map(i-dy, list),
 						map(i+dz, list) - map(i-dz, list)));
 					if(glm::abs(dis) < pitch*0.01f){
-						int mat;
-						map(i, list, mat);
-						vb.push_back(Vertex(i, N, N*0.5f + 0.5f, psize));
-						break;
-					}
-					i -= N * dis;
-				}
-			}
-		}
-	}
-}
-
-inline void fillCells(VertexBuffer& vb, CSGList& list, const glm::vec3& min, const glm::vec3& max, float spu){
-	glm::vec3 dx(0.01f, 0.0f, 0.0f);
-	glm::vec3 dy(0.0f, 0.01f, 0.0f);
-	glm::vec3 dz(0.0f, 0.0f, 0.01f);
-	float pitch = 1.0f / spu;
-	float psize = 1024.0f * pitch;
-	for(float z = min.z; z <= max.z; z += pitch){
-		for(float y = min.y; y <= max.y; y += pitch){
-			for(float x = min.x; x <= max.x; x += pitch){
-				glm::vec3 i(x, y, z);
-				if(map(i, list) > pitch)continue;
-				for(int j = 0; j < 60; j++){
-					float dis = map(i, list);
-					glm::vec3 N = glm::normalize(glm::vec3(
-						map(i+dx, list) - map(i-dx, list),
-						map(i+dy, list) - map(i-dy, list),
-						map(i+dz, list) - map(i-dz, list)));
-					if(glm::abs(dis) < pitch*0.01f){
-						int mat;
-						map(i, list, mat);
 						vb.push_back(Vertex(i, N, N*0.5f + 0.5f, psize));
 						break;
 					}

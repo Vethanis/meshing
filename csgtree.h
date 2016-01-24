@@ -15,14 +15,13 @@ enum AXIS{
 };
 
 struct CSGNode{
-	glm::vec3 min, max;
 	CSGList list;
 	CSGNode *left, *right;
 	Mesh mesh;
 	float center;
 	AXIS axis;
 	bool old;
-	CSGNode() : min(FLT_MAX), max(FLT_MIN), left(nullptr), right(nullptr), center(0.0f), axis(NONE), old(false){}
+	CSGNode() : left(nullptr), right(nullptr), center(0.0f), axis(NONE), old(false){}
 	~CSGNode(){ delete left; delete right; }
 	inline void add(const CSG& item){
 		list.push_back(item);
@@ -31,8 +30,7 @@ struct CSGNode{
 	inline bool full(){return list.size() > MAX_CSGS;}
 	inline void remesh(float spu){
 		VertexBuffer vb;
-		getBounds(list, min, max);
-		fillCells(vb, list, min, max, spu);
+		fillCells(vb, list, spu);
 		mesh.upload(vb);
 		old = false;
 	}
@@ -73,11 +71,11 @@ inline void split(CSGNode& node){
 		node.axis = X;
 		for(auto i = begin(node.list); i != end(node.list); ){
 			PRINTLINEMACRO
-			if(i->maxX() < node.center){
+			if(i->max().x < node.center){
 				left->add(*i);
 				i = node.list.erase(i);
 			}
-			else if(i->minX() > node.center){
+			else if(i->min().x > node.center){
 				right->add(*i);
 				i = node.list.erase(i);
 			}
@@ -90,11 +88,11 @@ inline void split(CSGNode& node){
 		node.axis = Y;
 		for(auto i = begin(node.list); i != end(node.list); ){
 			PRINTLINEMACRO
-			if(i->maxY() < node.center){
+			if(i->max().y < node.center){
 				left->add(*i);
 				i = node.list.erase(i);
 			}
-			else if(i->minY() > node.center){
+			else if(i->min().y > node.center){
 				right->add(*i);
 				i = node.list.erase(i);
 			}
@@ -107,11 +105,11 @@ inline void split(CSGNode& node){
 		node.axis = Z;
 		for(auto i = begin(node.list); i != end(node.list); ){
 			PRINTLINEMACRO
-			if(i->maxZ() < node.center){
+			if(i->max().z < node.center){
 				left->add(*i);
 				i = node.list.erase(i);
 			}
-			else if(i->minZ() > node.center){
+			else if(i->min().z > node.center){
 				right->add(*i);
 				i = node.list.erase(i);
 			}
@@ -134,7 +132,7 @@ inline void insert(CSGNode* node, const CSG& item){
 			}break;
 			case X:{
 				PRINTLINEMACRO
-				if(item.maxX() < cur->center){
+				if(item.max().x < cur->center){
 					if(cur->left) cur = cur->left;
 					else{
 						cur->add(item);
@@ -142,7 +140,7 @@ inline void insert(CSGNode* node, const CSG& item){
 						return;
 					}
 				}
-				else if(item.minX() > cur->center){
+				else if(item.min().x > cur->center){
 					if(cur->right) cur = cur->right;
 					else{
 						cur->add(item);
@@ -157,7 +155,7 @@ inline void insert(CSGNode* node, const CSG& item){
 			}break;
 			case Y:{
 				PRINTLINEMACRO		
-				if(item.maxY() < cur->center){
+				if(item.max().y < cur->center){
 					if(cur->left) cur = cur->left;
 					else{
 						cur->add(item);
@@ -165,7 +163,7 @@ inline void insert(CSGNode* node, const CSG& item){
 						return;
 					}
 				}
-				else if(item.minY() > cur->center){
+				else if(item.min().y > cur->center){
 					if(cur->right) cur = cur->right;
 					else{
 						cur->add(item);
@@ -180,7 +178,7 @@ inline void insert(CSGNode* node, const CSG& item){
 			}break;
 			case Z:{
 				PRINTLINEMACRO
-				if(item.maxZ() < cur->center){
+				if(item.max().z < cur->center){
 					if(cur->left) cur = cur->left;
 					else{
 						cur->add(item);
@@ -188,7 +186,7 @@ inline void insert(CSGNode* node, const CSG& item){
 						return;
 					}
 				}
-				else if(item.minZ() > cur->center){
+				else if(item.min().z > cur->center){
 					if(cur->right) cur = cur->right;
 					else{
 						cur->add(item);

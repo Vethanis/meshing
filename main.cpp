@@ -76,7 +76,7 @@ int main(int argc, char* argv[]){
 		
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_Q) && waitcounter < 0){
 			waitcounter = 10;
-			insert(&csgroot, CSG(camera.getEye()+3.0f*camera.getAxis(), vec3(0.333333f), &sphere, 1));
+			insert(&csgroot, CSG(camera.getEye()+3.0f*camera.getAxis(), vec3(0.333333f), &SPHEREADD, 1));
 		}
 		
 		std::vector<CSGNode*> nodes;
