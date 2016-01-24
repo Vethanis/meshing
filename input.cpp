@@ -7,6 +7,7 @@
 bool Input::m_rightMouseDown = false;
 bool Input::m_leftMouseDown = false;
 float Input::m_scrollOffset = 0.0f;
+float Input::m_relScroll = 0.0f;
 float Input::m_cursorX = 0.0f;
 float Input::m_cursorY = 0.0f;
 float Input::m_relCursorX = 0.0f;
@@ -53,6 +54,10 @@ float Input::scrollOffset(){
     return Input::m_scrollOffset;
 }
 
+float Input::relScroll(){
+	return Input::m_relScroll;
+}
+
 float Input::cursorX(){
     return Input::m_cursorX;
 }
@@ -92,6 +97,7 @@ void Input::cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 }
 
 void Input::scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
+    m_relScroll = yoffset - m_scrollOffset;
     m_scrollOffset = (float)yoffset;
 }
 

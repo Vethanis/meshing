@@ -51,6 +51,8 @@ int main(int argc, char* argv[]){
 	GLProgram colorProg("vert.glsl", "frag.glsl");
 	
 	CSGNode csgroot;
+	Mesh brushMesh;
+	VertexBuffer brushbuf;
 	
 	Timer timer;
 	
@@ -61,30 +63,54 @@ int main(int argc, char* argv[]){
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_PROGRAM_POINT_SIZE);
 	
+	SDF_Base* brush = &SPHERESADD;
+	float bsize = 0.1f;
+	
 	input.poll();
     unsigned i = 0;
     double t = glfwGetTime();
     int waitcounter = 10;
+    bool brush_changed = true;
     while(window.open()){
     	waitcounter--;
         input.poll(frameBegin(i, t), camera);
-        uni.MVP = camera.getVP();
+        mat4 brushMat = glm::translate(glm::mat4(), camera.getEye() + 5.0f*camera.getAxis());
+        mat4 VP = camera.getVP();
+        uni.MVP = VP * brushMat;
         uni.eye = vec4(camera.getEye(), 0.0f);
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_E))
 			uni.light_pos = vec4(camera.getEye(), 0.0f);
+		uni.light_pos.w = 0.0f;
 		unibuf.upload(&uni, sizeof(uni));
+		
+		if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f; brush_changed = true;}
+		else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f; brush_changed = true;}
+		
+		if(glfwGetKey(window.getWindow(), GLFW_KEY_1)){ brush = &SPHERESADD; brush_changed = true;}
+		else if(glfwGetKey(window.getWindow(), GLFW_KEY_2)){ brush = &BOXSADD; brush_changed = true;}
 		
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_Q) && waitcounter < 0){
 			waitcounter = 10;
-			insert(&csgroot, CSG(camera.getEye()+3.0f*camera.getAxis(), vec3(0.333333f), &SPHEREADD, 1));
+			insert(&csgroot, CSG(camera.getEye()+5.0f*camera.getAxis(), vec3(bsize), brush, bsize, 1));
 		}
+		if(brush_changed){
+			fillCells(brushbuf, CSG(vec3(0.0f), vec3(bsize), brush, bsize, 1), 15.0f);
+			brushMesh.upload(brushbuf);
+			brushbuf.clear();
+			brush_changed = false;
+		}
+		colorProg.bind();
+		brushMesh.draw();
+		uni.MVP = VP;
+		uni.light_pos.w = 1.0f;
+		unibuf.upload(&uni, sizeof(uni));
 		
 		std::vector<CSGNode*> nodes;
 		collect(nodes, &csgroot);			
-		for(CSGNode* np : nodes)
+		for(CSGNode* np : nodes){
 			if(np->old) np->remesh(15.0f);
+		}
 		
-		colorProg.bind();
 		//timer.begin();
 		for(CSGNode* np : nodes)
 			np->draw();

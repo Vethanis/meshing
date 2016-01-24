@@ -12,9 +12,9 @@ struct SDF_Base{
 	virtual float blend(float a, float b, float r)=0;
 };
 
-inline float smin(float a, float b, float r){
-	glm::vec2 u = glm::max(glm::vec2(r + a,r + b), glm::vec2(0.0f));
-	return glm::min(-r, glm::max(a, b)) + glm::length(u);
+inline float smin(float a, float b, float k){
+    float h = glm::clamp( 0.5+0.5*(b-a)/k, 0.0, 1.0 );
+    return glm::mix( b, a, h ) - k*h*(1.0-h);
 }
 inline float smax(float a, float b, float r){
 	return smin(a, -b, r);
@@ -204,33 +204,60 @@ inline float map(const glm::vec3& p, CSGList& list){
 }
 
 inline void fillCells(VertexBuffer& vb, CSGList& list, float spu){
-	glm::vec3 dx(0.01f, 0.0f, 0.0f);
-	glm::vec3 dy(0.0f, 0.01f, 0.0f);
-	glm::vec3 dz(0.0f, 0.0f, 0.01f);
+	glm::vec3 dx(0.1f, 0.0f, 0.0f);
+	glm::vec3 dy(0.0f, 0.1f, 0.0f);
+	glm::vec3 dz(0.0f, 0.0f, 0.1f);
 	glm::vec3 min, max;
 	getBounds(list, min, max);
 	float pitch = 1.0f / spu;
 	float psize = 1024.0f * pitch;
 	for(float z = min.z; z <= max.z; z += pitch){
-		for(float y = min.y; y <= max.y; y += pitch){
-			for(float x = min.x; x <= max.x; x += pitch){
-				glm::vec3 i(x, y, z);
-				if(map(i, list) > pitch)continue;
-				for(int j = 0; j < 60; j++){
-					float dis = map(i, list);
-					glm::vec3 N = glm::normalize(glm::vec3(
-						map(i+dx, list) - map(i-dx, list),
-						map(i+dy, list) - map(i-dy, list),
-						map(i+dz, list) - map(i-dz, list)));
-					if(glm::abs(dis) < pitch*0.01f){
-						vb.push_back(Vertex(i, N, N*0.5f + 0.5f, psize));
-						break;
-					}
-					i -= N * dis;
-				}
+	for(float y = min.y; y <= max.y; y += pitch){
+	for(float x = min.x; x <= max.x; x += pitch){
+		glm::vec3 i(x, y, z);
+		if(map(i, list) > pitch)continue;
+		for(int j = 0; j < 60; j++){
+			float dis = map(i, list);
+			glm::vec3 N = glm::normalize(glm::vec3(
+				map(i+dx, list) - map(i-dx, list),
+				map(i+dy, list) - map(i-dy, list),
+				map(i+dz, list) - map(i-dz, list)));
+			if(glm::abs(dis) < pitch*0.01f){
+				vb.push_back(Vertex(i, N, N*0.5f + 0.5f, psize));
+				break;
 			}
+			i -= N * dis;
 		}
-	}
+	}}}
+}
+
+inline void fillCells(VertexBuffer& vb, const CSG& item, float spu){
+	glm::vec3 dx(0.1f, 0.0f, 0.0f);
+	glm::vec3 dy(0.0f, 0.1f, 0.0f);
+	glm::vec3 dz(0.0f, 0.0f, 0.1f);
+	glm::vec3 min, max;
+	min = item.min();
+	max = item.max();
+	float pitch = 1.0f / spu;
+	float psize = 1024.0f * pitch;
+	for(float z = min.z; z <= max.z; z += pitch){
+	for(float y = min.y; y <= max.y; y += pitch){
+	for(float x = min.x; x <= max.x; x += pitch){
+		glm::vec3 i(x, y, z);
+		if(item.func(i) > pitch)continue;
+		for(int j = 0; j < 60; j++){
+			float dis = item.func(i);
+			glm::vec3 N = glm::normalize(glm::vec3(
+				item.func(i+dx) - item.func(i-dx),
+				item.func(i+dy) - item.func(i-dy),
+				item.func(i+dz) - item.func(i-dz)));
+			if(glm::abs(dis) < pitch*0.01f){
+				vb.push_back(Vertex(i, N, glm::vec3(0.0f, 1.0f, 0.0f), psize));
+				break;
+			}
+			i -= N * dis;
+		}
+	}}}
 }
 
 #endif

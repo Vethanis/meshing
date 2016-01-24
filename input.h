@@ -8,7 +8,7 @@ class Input{
 	GLFWwindow* m_glwindow;
 
 	static bool m_rightMouseDown, m_leftMouseDown;
-	static float m_scrollOffset, m_cursorX, m_cursorY, m_relCursorX, m_relCursorY;
+	static float m_scrollOffset, m_relScroll, m_cursorX, m_cursorY, m_relCursorX, m_relCursorY;
 
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
@@ -22,6 +22,7 @@ public:
     static bool rightMouseDown();
     static bool leftMouseDown();
     static float scrollOffset();
+    static float relScroll();
     static float cursorX();
     static float cursorY();
     static float relCursorX();
