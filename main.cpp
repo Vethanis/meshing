@@ -8,7 +8,7 @@
 #include "UBO.h"
 #include "mesh.h"
 #include "timer.h"
-#include "csgtree.h"
+#include "csgoctree.h"
 
 
 using namespace std;
@@ -50,9 +50,10 @@ int main(int argc, char* argv[]){
 	Input input(window.getWindow());
 	GLProgram colorProg("vert.glsl", "frag.glsl");
 	
-	CSGNode csgroot;
+	CSGOctNode csgroot(vec3(0.0f), 20.0f, 1);
 	Mesh brushMesh;
-	VertexBuffer brushbuf;
+	Mesh mesh;
+	VertexBuffer vb;
 	
 	Timer timer;
 	
@@ -71,15 +72,22 @@ int main(int argc, char* argv[]){
     double t = glfwGetTime();
     int waitcounter = 10;
     bool brush_changed = true;
+    bool edit = false;
+    float spu = 1.0f;
     while(window.open()){
-    	waitcounter--;
         input.poll(frameBegin(i, t), camera);
-        mat4 brushMat = glm::translate(glm::mat4(), camera.getEye() + 5.0f*camera.getAxis());
+    	waitcounter--;
+    	
+    	glm::vec3 at = camera.getEye() + 3.0f * camera.getAxis();
+        
+        mat4 brushMat = glm::translate(glm::mat4(), at);
         mat4 VP = camera.getVP();
         uni.MVP = VP * brushMat;
         uni.eye = vec4(camera.getEye(), 0.0f);
+        
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_E))
 			uni.light_pos = vec4(camera.getEye(), 0.0f);
+			
 		uni.light_pos.w = 0.0f;
 		unibuf.upload(&uni, sizeof(uni));
 		
@@ -88,32 +96,41 @@ int main(int argc, char* argv[]){
 		
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_1)){ brush = &SPHERESADD; brush_changed = true;}
 		else if(glfwGetKey(window.getWindow(), GLFW_KEY_2)){ brush = &BOXSADD; brush_changed = true;}
+		if(glfwGetKey(window.getWindow(), GLFW_KEY_3)){ spu *= 1.01f;}
+		else if(glfwGetKey(window.getWindow(), GLFW_KEY_4)){spu *= 0.99f;}
 		
-		if(glfwGetKey(window.getWindow(), GLFW_KEY_Q) && waitcounter < 0){
-			waitcounter = 10;
-			insert(&csgroot, CSG(camera.getEye()+5.0f*camera.getAxis(), vec3(bsize), brush, bsize, 1));
-		}
 		if(brush_changed){
-			fillCells(brushbuf, CSG(vec3(0.0f), vec3(bsize), brush, bsize, 1), 15.0f);
+			VertexBuffer brushbuf;
+			fillCells(brushbuf, CSG(vec3(0.0f), vec3(bsize), brush, bsize, 1), spu*10.0f);
 			brushMesh.upload(brushbuf);
-			brushbuf.clear();
 			brush_changed = false;
 		}
 		colorProg.bind();
 		brushMesh.draw();
+		
 		uni.MVP = VP;
 		uni.light_pos.w = 1.0f;
 		unibuf.upload(&uni, sizeof(uni));
+		if(glfwGetKey(window.getWindow(), GLFW_KEY_Q) && waitcounter < 0){
+			waitcounter = 10;
+			insert(&csgroot, CSG(at, vec3(bsize), brush, bsize, 1));
+			edit = true;
+		}
 		
-		std::vector<CSGNode*> nodes;
-		collect(nodes, &csgroot);			
-		for(CSGNode* np : nodes){
-			if(np->old) np->remesh(15.0f);
+		if(edit){
+			vb.clear();
+			std::vector<CSGOctNode*> nodes;
+			collect(nodes, &csgroot);	
+			for(CSGOctNode* np : nodes){
+				np->remesh(spu);
+				vb.insert(end(vb), begin(np->vb), end(np->vb));
+			}
+			mesh.upload(vb);
+			edit = false;
 		}
 		
 		//timer.begin();
-		for(CSGNode* np : nodes)
-			np->draw();
+		mesh.draw();
 		//timer.endPrint();
         window.swap();
     }

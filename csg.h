@@ -203,14 +203,13 @@ inline float map(const glm::vec3& p, CSGList& list){
 	return min;
 }
 
-inline void fillCells(VertexBuffer& vb, CSGList& list, float spu){
-	glm::vec3 dx(0.1f, 0.0f, 0.0f);
-	glm::vec3 dy(0.0f, 0.1f, 0.0f);
-	glm::vec3 dz(0.0f, 0.0f, 0.1f);
-	glm::vec3 min, max;
-	getBounds(list, min, max);
+inline void fillCells(VertexBuffer& vb, CSGList& list, const glm::vec3& min, const glm::vec3& max, float spu){
+	if(list.empty())return;
+	glm::vec3 dx(0.01f, 0.0f, 0.0f);
+	glm::vec3 dy(0.0f, 0.01f, 0.0f);
+	glm::vec3 dz(0.0f, 0.0f, 0.01f);
 	float pitch = 1.0f / spu;
-	float psize = 1024.0f * pitch;
+	float psize = 1024 * pitch;
 	for(float z = min.z; z <= max.z; z += pitch){
 	for(float y = min.y; y <= max.y; y += pitch){
 	for(float x = min.x; x <= max.x; x += pitch){
@@ -239,7 +238,7 @@ inline void fillCells(VertexBuffer& vb, const CSG& item, float spu){
 	min = item.min();
 	max = item.max();
 	float pitch = 1.0f / spu;
-	float psize = 1024.0f * pitch;
+	float psize = 1024 * pitch;
 	for(float z = min.z; z <= max.z; z += pitch){
 	for(float y = min.y; y <= max.y; y += pitch){
 	for(float x = min.x; x <= max.x; x += pitch){
