@@ -90,7 +90,7 @@ inline void insert(CSGOctNode* node, const CSG& item){
 	while(stack.size()){
 		CSGOctNode* cur = stack.top();
 		stack.pop();
-		if(cur->len < 0.1f){
+		if(cur->len < 0.5f){
 			cur->addItem(item);
 			continue;
 		}

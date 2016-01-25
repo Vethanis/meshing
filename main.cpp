@@ -73,7 +73,7 @@ int main(int argc, char* argv[]){
     int waitcounter = 10;
     bool brush_changed = true;
     bool edit = false;
-    float spu = 1.0f;
+    float spu = 2.0f;
     while(window.open()){
         input.poll(frameBegin(i, t), camera);
     	waitcounter--;
@@ -87,15 +87,13 @@ int main(int argc, char* argv[]){
         
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_E))
 			uni.light_pos = vec4(camera.getEye(), 0.0f);
-			
-		uni.light_pos.w = 0.0f;
 		unibuf.upload(&uni, sizeof(uni));
 		
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f; brush_changed = true;}
 		else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f; brush_changed = true;}
 		
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_1)){ brush = &SPHERESADD; brush_changed = true;}
-		else if(glfwGetKey(window.getWindow(), GLFW_KEY_2)){ brush = &BOXSADD; brush_changed = true;}
+		else if(glfwGetKey(window.getWindow(), GLFW_KEY_2)){ brush = &BOXADD; brush_changed = true;}
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_3)){ spu *= 1.01f;}
 		else if(glfwGetKey(window.getWindow(), GLFW_KEY_4)){spu *= 0.99f;}
 		
@@ -109,7 +107,6 @@ int main(int argc, char* argv[]){
 		brushMesh.draw();
 		
 		uni.MVP = VP;
-		uni.light_pos.w = 1.0f;
 		unibuf.upload(&uni, sizeof(uni));
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_Q) && waitcounter < 0){
 			waitcounter = 10;
