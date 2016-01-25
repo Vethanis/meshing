@@ -65,7 +65,7 @@ int main(int argc, char* argv[]){
 	glEnable(GL_PROGRAM_POINT_SIZE);
 	
 	SDF_Base* brush = &SPHERESADD;
-	float bsize = 0.1f;
+	float bsize = 0.2f;
 	
 	input.poll();
     unsigned i = 0;
