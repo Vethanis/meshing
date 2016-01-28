@@ -16,7 +16,7 @@ struct CSGOctNode{
 	float len;
 	int depth;
 	bool old;
-	CSGOctNode(const glm::vec3& c, float l, int d) : center(c), len(l), depth(d), old(false){PRINTLINEMACRO};
+	CSGOctNode(const glm::vec3& c, float l, int d) : center(c), len(l), depth(d), old(true){PRINTLINEMACRO};
 	~CSGOctNode(){};
 	inline CSGOctNode* getChild(unsigned char i){
 		return &(children[i]);
@@ -51,7 +51,7 @@ struct CSGOctNode{
     inline void remesh(float spu){
     	PRINTLINEMACRO
     	if(old){
-			fillCells(vb, list, center - len, center + len, spu*depth);
+			fillCells(vb, list, center - len, center + len, spu);
 		}
 		old = false;
 	}
@@ -68,7 +68,7 @@ inline void collect(std::vector<CSGOctNode*>& out, CSGOctNode* root){
 		CSGOctNode* cur = stack.top();
 		stack.pop();
 		PRINTLINEMACRO
-		if(cur->hasData()){
+		if(cur->old || cur->hasData()){
 			PRINTLINEMACRO
 			out.push_back(cur);
 		}

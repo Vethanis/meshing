@@ -5,7 +5,7 @@
 #include "debugmacro.h"
 #include "mesh.h"
 
-#define MAX_CSGS 10
+#define MAX_CSGS 50
 
 enum AXIS{
 	NONE,
@@ -17,11 +17,11 @@ enum AXIS{
 struct CSGNode{
 	CSGList list;
 	CSGNode *left, *right;
-	Mesh mesh;
+	VertexBuffer vb;
 	float center;
 	AXIS axis;
 	bool old;
-	CSGNode() : left(nullptr), right(nullptr), center(0.0f), axis(NONE), old(false){}
+	CSGNode() : left(nullptr), right(nullptr), center(0.0f), axis(NONE), old(true){}
 	~CSGNode(){ delete left; delete right; }
 	inline void add(const CSG& item){
 		list.push_back(item);
@@ -29,13 +29,10 @@ struct CSGNode{
 	}
 	inline bool full(){return list.size() > MAX_CSGS;}
 	inline void remesh(float spu){
-		VertexBuffer vb;
+		if(!old)return;
+		vb.clear();
 		fillCells(vb, list, spu);
-		mesh.upload(vb);
 		old = false;
-	}
-	inline void draw(){
-		mesh.draw();
 	}
 };
 

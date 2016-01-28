@@ -8,8 +8,9 @@
 #include "UBO.h"
 #include "mesh.h"
 #include "timer.h"
-#include "csgoctree.h"
+#include "csgtree.h"
 
+#include "glm/gtc/noise.hpp"
 
 using namespace std;
 using namespace glm;
@@ -19,6 +20,10 @@ struct Uniforms{
 	vec4 eye;
 	vec4 light_pos;
 };
+
+float terrain(const glm::vec3& p){
+	return p.y;
+}
 
 double frameBegin(unsigned& i, double& t){
     double dt = glfwGetTime() - t;
@@ -50,7 +55,7 @@ int main(int argc, char* argv[]){
 	Input input(window.getWindow());
 	GLProgram colorProg("vert.glsl", "frag.glsl");
 	
-	CSGOctNode csgroot(vec3(0.0f), 20.0f, 1);
+	CSGNode csgroot;
 	Mesh brushMesh;
 	Mesh mesh;
 	VertexBuffer vb;
@@ -64,7 +69,6 @@ int main(int argc, char* argv[]){
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_PROGRAM_POINT_SIZE);
 	
-	SDF_Base* brush = &SPHERESADD;
 	float bsize = 0.2f;
 	
 	input.poll();
@@ -73,7 +77,7 @@ int main(int argc, char* argv[]){
     int waitcounter = 10;
     bool brush_changed = true;
     bool edit = false;
-    float spu = 2.0f;
+    float spu = 15.0f;
     while(window.open()){
         input.poll(frameBegin(i, t), camera);
     	waitcounter--;
@@ -84,22 +88,18 @@ int main(int argc, char* argv[]){
         mat4 VP = camera.getVP();
         uni.MVP = VP * brushMat;
         uni.eye = vec4(camera.getEye(), 0.0f);
-        
-		if(glfwGetKey(window.getWindow(), GLFW_KEY_E))
-			uni.light_pos = vec4(camera.getEye(), 0.0f);
+		uni.light_pos = vec4(camera.getEye(), 0.0f);
 		unibuf.upload(&uni, sizeof(uni));
 		
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f; brush_changed = true;}
 		else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f; brush_changed = true;}
 		
-		if(glfwGetKey(window.getWindow(), GLFW_KEY_1)){ brush = &SPHERESADD; brush_changed = true;}
-		else if(glfwGetKey(window.getWindow(), GLFW_KEY_2)){ brush = &BOXADD; brush_changed = true;}
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_3)){ spu *= 1.01f;}
 		else if(glfwGetKey(window.getWindow(), GLFW_KEY_4)){spu *= 0.99f;}
 		
 		if(brush_changed){
 			VertexBuffer brushbuf;
-			fillCells(brushbuf, CSG(vec3(0.0f), vec3(bsize), brush, bsize, 1), spu*10.0f);
+			fillCells(brushbuf, CSG(vec3(0.0f), vec3(bsize), &SPHEREADD, bsize, 1), spu);
 			brushMesh.upload(brushbuf);
 			brush_changed = false;
 		}
@@ -108,17 +108,22 @@ int main(int argc, char* argv[]){
 		
 		uni.MVP = VP;
 		unibuf.upload(&uni, sizeof(uni));
-		if(glfwGetKey(window.getWindow(), GLFW_KEY_Q) && waitcounter < 0){
+		if(input.leftMouseDown() && waitcounter < 0){
 			waitcounter = 10;
-			insert(&csgroot, CSG(at, vec3(bsize), brush, bsize, 1));
+			insert(&csgroot, CSG(at, vec3(bsize), &SPHERESADD, bsize, 1));
+			edit = true;
+		}
+		else if(input.rightMouseDown() && waitcounter < 0){
+			waitcounter = 10;
+			insert(&csgroot, CSG(at, vec3(bsize), &SPHERESUB, bsize, 1));
 			edit = true;
 		}
 		
 		if(edit){
 			vb.clear();
-			std::vector<CSGOctNode*> nodes;
+			std::vector<CSGNode*> nodes;
 			collect(nodes, &csgroot);	
-			for(CSGOctNode* np : nodes){
+			for(auto* np : nodes){
 				np->remesh(spu);
 				vb.insert(end(vb), begin(np->vb), end(np->vb));
 			}

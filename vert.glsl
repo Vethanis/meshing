@@ -25,7 +25,7 @@ void main(){
 	vec3 H = normalize(normalize(eye.xyz - position) + L);
 	float S = (D > 0.0f) ? pow(max(0.0f, dot(H, normal)), 16.0f) : 0.0f;
 	float dist2 = dot(light_pos.xyz - position, light_pos.xyz - position);
-	fragColor = vec3(0.0001f, 0.00005f, 0.00005f) + (D * color + S * color)*15.0f / dist2;
+	fragColor = vec3(0.001f, 0.0005f, 0.0005f) + (D * color + S * color)*3.0f / dist2;
 	fragColor = pow(fragColor, vec3(1.0f / 2.2f));
 #endif
 #ifdef NORMAL
