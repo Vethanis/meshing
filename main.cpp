@@ -8,7 +8,7 @@
 #include "UBO.h"
 #include "mesh.h"
 #include "timer.h"
-#include "csgtree.h"
+#include "csgarray.h"
 
 #include "glm/gtc/noise.hpp"
 
@@ -55,10 +55,8 @@ int main(int argc, char* argv[]){
 	Input input(window.getWindow());
 	GLProgram colorProg("vert.glsl", "frag.glsl");
 	
-	CSGNode csgroot;
+	CSGArray csgary(5.0f);
 	Mesh brushMesh;
-	Mesh mesh;
-	VertexBuffer vb;
 	
 	Timer timer;
 	
@@ -110,29 +108,19 @@ int main(int argc, char* argv[]){
 		unibuf.upload(&uni, sizeof(uni));
 		if(input.leftMouseDown() && waitcounter < 0){
 			waitcounter = 10;
-			insert(&csgroot, CSG(at, vec3(bsize), &SPHERESADD, bsize, 1));
+			csgary.insert(CSG(at, vec3(bsize), &SPHERESADD, bsize, 1));
 			edit = true;
 		}
 		else if(input.rightMouseDown() && waitcounter < 0){
 			waitcounter = 10;
-			insert(&csgroot, CSG(at, vec3(bsize), &SPHERESUB, bsize, 1));
+			csgary.insert(CSG(at, vec3(bsize), &SPHERESUB, bsize, 1));
 			edit = true;
 		}
 		
-		if(edit){
-			vb.clear();
-			std::vector<CSGNode*> nodes;
-			collect(nodes, &csgroot);	
-			for(auto* np : nodes){
-				np->remesh(spu);
-				vb.insert(end(vb), begin(np->vb), end(np->vb));
-			}
-			mesh.upload(vb);
-			edit = false;
-		}
+		csgary.remesh(spu);
 		
 		//timer.begin();
-		mesh.draw();
+		csgary.draw();
 		//timer.endPrint();
         window.swap();
     }

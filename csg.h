@@ -182,7 +182,7 @@ inline void fillCells(VertexBuffer& vb, CSGList& list, const glm::vec3& min, con
 		glm::vec3 i(x, y, z);
 		float dis = map(i, list);
 		if(dis < pitch){
-			for(int j = 0; j < 60; j++){
+			for(int j = 0; j < 10; j++){
 				dis = map(i, list);
 				glm::vec3 N = glm::normalize(glm::vec3(
 					map(i+dx, list) - map(i-dx, list),
@@ -206,9 +206,9 @@ inline void fillCells(VertexBuffer& vb, CSGList& list, float spu){
 }
 
 inline void fillCells(VertexBuffer& vb, const CSG& item, float spu){
-	glm::vec3 dx(0.1f, 0.0f, 0.0f);
-	glm::vec3 dy(0.0f, 0.1f, 0.0f);
-	glm::vec3 dz(0.0f, 0.0f, 0.1f);
+	glm::vec3 dx(0.01f, 0.0f, 0.0f);
+	glm::vec3 dy(0.0f, 0.01f, 0.0f);
+	glm::vec3 dz(0.0f, 0.0f, 0.01f);
 	glm::vec3 min, max;
 	min = item.min();
 	max = item.max();
@@ -220,7 +220,7 @@ inline void fillCells(VertexBuffer& vb, const CSG& item, float spu){
 		glm::vec3 i(x, y, z);
 		float dis = item.func(i);
 		if(dis < pitch){
-			for(int j = 0; j < 60; j++){
+			for(int j = 0; j < 10; j++){
 				dis = item.func(i);
 				glm::vec3 N = glm::normalize(glm::vec3(
 					item.func(i+dx) - item.func(i-dx),
