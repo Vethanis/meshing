@@ -10,7 +10,6 @@
 #include "timer.h"
 #include "csgarray.h"
 
-#include "glm/gtc/noise.hpp"
 
 using namespace std;
 using namespace glm;
@@ -21,8 +20,10 @@ struct Uniforms{
 	vec4 light_pos;
 };
 
-float terrain(const glm::vec3& p){
-	return p.y;
+void remesh(CSGArray* ary, VertexBuffer* vb, bool* done, float spu){
+	vb->clear();
+	ary->remesh(*vb, spu);
+	*done = true;
 }
 
 double frameBegin(unsigned& i, double& t){
@@ -55,8 +56,10 @@ int main(int argc, char* argv[]){
 	Input input(window.getWindow());
 	GLProgram colorProg("vert.glsl", "frag.glsl");
 	
-	CSGArray csgary(5.0f);
+	CSGArray csgary(0.5f);
 	Mesh brushMesh;
+	VertexBuffer vb;
+	Mesh mesh;
 	
 	Timer timer;
 	
@@ -74,8 +77,10 @@ int main(int argc, char* argv[]){
     double t = glfwGetTime();
     int waitcounter = 10;
     bool brush_changed = true;
+    bool box = false;
     bool edit = false;
     float spu = 15.0f;
+    bool remeshed = false;
     while(window.open()){
         input.poll(frameBegin(i, t), camera);
     	waitcounter--;
@@ -92,12 +97,16 @@ int main(int argc, char* argv[]){
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f; brush_changed = true;}
 		else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f; brush_changed = true;}
 		
+		if(glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0){ box = !box; waitcounter = 10; brush_changed = true;}
 		if(glfwGetKey(window.getWindow(), GLFW_KEY_3)){ spu *= 1.01f;}
 		else if(glfwGetKey(window.getWindow(), GLFW_KEY_4)){spu *= 0.99f;}
 		
 		if(brush_changed){
-			VertexBuffer brushbuf;
-			fillCells(brushbuf, CSG(vec3(0.0f), vec3(bsize), &SPHEREADD, bsize, 1), spu);
+			VertexBuffer brushbuf;			
+			if(box)
+				fillCells(brushbuf, CSG(vec3(0.0f), vec3(bsize), &BOXADD, bsize, 1), spu);
+			else
+				fillCells(brushbuf, CSG(vec3(0.0f), vec3(bsize), &SPHEREADD, bsize, 1), spu);
 			brushMesh.upload(brushbuf);
 			brush_changed = false;
 		}
@@ -108,19 +117,30 @@ int main(int argc, char* argv[]){
 		unibuf.upload(&uni, sizeof(uni));
 		if(input.leftMouseDown() && waitcounter < 0){
 			waitcounter = 10;
-			csgary.insert(CSG(at, vec3(bsize), &SPHERESADD, bsize, 1));
+			if(box)
+				csgary.insert(CSG(at, vec3(bsize), &BOXSADD, bsize, 1));
+			else
+				csgary.insert(CSG(at, vec3(bsize), &SPHERESADD, bsize, 1));
 			edit = true;
 		}
 		else if(input.rightMouseDown() && waitcounter < 0){
 			waitcounter = 10;
-			csgary.insert(CSG(at, vec3(bsize), &SPHERESUB, bsize, 1));
+			if(box)
+				csgary.insert(CSG(at, vec3(bsize), &BOXSUB, bsize, 1));
+			else
+				csgary.insert(CSG(at, vec3(bsize), &SPHERESUB, bsize, 1));
 			edit = true;
 		}
-		
-		csgary.remesh(spu);
-		
+		if(edit){
+			remesh( &csgary, &vb, &remeshed, spu);
+			edit = false;
+		}
+		if(remeshed){
+			mesh.upload(vb);
+			remeshed = false;
+		}
 		//timer.begin();
-		csgary.draw();
+		mesh.draw();
 		//timer.endPrint();
         window.swap();
     }

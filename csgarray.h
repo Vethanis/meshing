@@ -3,6 +3,8 @@
 
 #include "csg.h"
 #include <unordered_map>
+#include <set>
+#include <algorithm>
 #include "mesh.h"
 
 int hash(const glm::vec3& v, float cell_size){
@@ -36,43 +38,48 @@ struct CSGItem{
 };
 
 struct CSGArray{
-	Mesh mesh;
 	std::unordered_map<int, CSGItem> data;
 	float cell_size;
 	bool old;
 	CSGArray(float csize) : cell_size(csize), old(true){};
+	inline void getPoints(std::vector<glm::vec3>& pts, const CSG& item){
+		glm::vec3 lo = item.min();
+		glm::vec3 hi = item.max();
+		pts.push_back(lo);
+		pts.push_back({lo.x, lo.y, hi.z});
+		pts.push_back({lo.x, hi.y, lo.z});
+		pts.push_back({lo.x, hi.y, hi.z});
+		pts.push_back({hi.x, lo.y, lo.z});
+		pts.push_back({hi.x, lo.y, hi.z});
+		pts.push_back({hi.x, hi.y, lo.z});
+		pts.push_back(hi);
+	}
 	inline void insert(const CSG& item){
 		old = true;
-		int key1 = hash(item.min(), cell_size);
-		auto i = data.find(key1);
-		if(i == std::end(data)){
-			data[key1] = CSGItem(item);
+		std::vector<glm::vec3> points;
+		getPoints(points, item);
+		std::set<int> keys;
+		for(auto& i : points){
+			keys.insert(hash(i, cell_size));
 		}
-		else{
-			i->second.insert(item);
-		}
-		int key2 = hash(item.max(), cell_size);
-		if(key1 == key2)return;
-		i = data.find(key2);
-		if(i == std::end(data)){
-			data[key2] = CSGItem(item);
-		}
-		else{
-			i->second.insert(item);
+		for(auto j : keys){
+			auto i = data.find(j);
+			if(i == std::end(data)){
+				data[j] = CSGItem(item);
+			}
+			else{
+				i->second.insert(item);
+			}
 		}
 	}
-	inline void remesh(float spu){
+	inline void remesh(VertexBuffer& vb, float spu){
 		if(!old)return;
 		old = false;
-		VertexBuffer vb;
+		vb.clear();
 		for(auto& i : data){
 			i.second.remesh(spu);
 			vb.insert(std::end(vb), std::begin(i.second.vb), std::end(i.second.vb));
 		}
-		mesh.upload(vb);
-	}
-	inline void draw(){
-		mesh.draw();
 	}
 };
 
