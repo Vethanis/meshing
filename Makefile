@@ -10,9 +10,9 @@ else
 	ifeq ($(shell uname), Linux)
 		CXX = clang++
 		INC_DIRS = -I/usr/include
-		CXXFLAGS = $(INC_DIRS) -std=c++11 -Wfatal-errors -Wall #-fopenmp
+		CXXFLAGS = $(INC_DIRS) -std=c++11 -pthread -stdlib=libstdc++ -Wfatal-errors -Wall
 		LDFLAGS = -L/usr/lib
-		LDLIBS = -lGLEW -lGL -lglfw #-fopenmp
+		LDLIBS = -lGLEW -lGL -lglfw -pthread
 	endif
 endif
 
@@ -34,7 +34,7 @@ release: CXXFLAGS += -O3
 release: $(EXE)
 
 run:	$(EXE)
-	./$(EXE) 1024 1024
+	./$(EXE) 1280 720
 
 clean:
 	rm *.o $(EXE)

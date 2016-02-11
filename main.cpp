@@ -10,6 +10,8 @@
 #include "timer.h"
 #include "csgarray.h"
 
+#include <thread>
+
 
 using namespace std;
 using namespace glm;
@@ -56,7 +58,7 @@ int main(int argc, char* argv[]){
 	Input input(window.getWindow());
 	GLProgram colorProg("vert.glsl", "frag.glsl");
 	
-	CSGArray csgary(0.5f);
+	CSGArray csgary(3.0f);
 	Mesh brushMesh;
 	VertexBuffer vb;
 	Mesh mesh;
@@ -81,6 +83,7 @@ int main(int argc, char* argv[]){
     bool edit = false;
     float spu = 15.0f;
     bool remeshed = false;
+    thread* worker = nullptr;
     while(window.open()){
         input.poll(frameBegin(i, t), camera);
     	waitcounter--;
@@ -131,11 +134,14 @@ int main(int argc, char* argv[]){
 				csgary.insert(CSG(at, vec3(bsize), &SPHERESUB, bsize, 1));
 			edit = true;
 		}
-		if(edit){
-			remesh( &csgary, &vb, &remeshed, spu);
+		if(edit && !worker){
+			worker = new thread(&remesh, &csgary, &vb, &remeshed, spu);
 			edit = false;
 		}
 		if(remeshed){
+			worker->join();
+			delete worker;
+			worker = nullptr;
 			mesh.upload(vb);
 			remeshed = false;
 		}

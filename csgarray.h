@@ -45,14 +45,11 @@ struct CSGArray{
 	inline void getPoints(std::vector<glm::vec3>& pts, const CSG& item){
 		glm::vec3 lo = item.min();
 		glm::vec3 hi = item.max();
-		pts.push_back(lo);
-		pts.push_back({lo.x, lo.y, hi.z});
-		pts.push_back({lo.x, hi.y, lo.z});
-		pts.push_back({lo.x, hi.y, hi.z});
-		pts.push_back({hi.x, lo.y, lo.z});
-		pts.push_back({hi.x, lo.y, hi.z});
-		pts.push_back({hi.x, hi.y, lo.z});
-		pts.push_back(hi);
+		for(float z = lo.z; z < hi.z; z += cell_size){
+		for(float y = lo.y; y < hi.y; y += cell_size){
+		for(float x = lo.x; x < hi.x; x += cell_size){
+			pts.push_back({x, y, z});
+		}}}
 	}
 	inline void insert(const CSG& item){
 		old = true;

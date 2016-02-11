@@ -127,7 +127,7 @@ struct CSG{
 	CSG(const glm::vec3& c, const glm::vec3& p, SDF_Base* sdf_obj, float rad=1.0f, int m=0)
 		: center(c), params(p), sdf(sdf_obj), r(rad), material(m){};
 	CSG(const CSG& o)
-		: center(o.center), params(o.params), sdf(o.sdf), r(o.r), material(o.material){};
+		: center(o.center), params(o.params), sdf(o.sdf), r(o.r), material(o.material) {};
 	~CSG(){};
 	inline CSG& operator = (const CSG& other){
 		center = other.center;
@@ -138,7 +138,7 @@ struct CSG{
 		return *this;
 	}
 	float func(const glm::vec3& p)const{
-		return sdf->func(p-center, params);
+		return sdf->func(p - center, params);
 	}
 	glm::vec3 min()const{
 		return sdf->min(center, params);
@@ -175,7 +175,7 @@ inline void fillCells(VertexBuffer& vb, CSGList& list, const glm::vec3& min, con
 	glm::vec3 dy(0.0f, 0.01f, 0.0f);
 	glm::vec3 dz(0.0f, 0.0f, 0.01f);
 	float pitch = 1.0f / spu;
-	float psize = 1024 * pitch;
+	float psize = (1280.0f+720.0f)*0.5f * pitch;
 	for(float z = min.z; z <= max.z; z += pitch){
 	for(float y = min.y; y <= max.y; y += pitch){
 	for(float x = min.x; x <= max.x; ){
