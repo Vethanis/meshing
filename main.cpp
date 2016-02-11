@@ -8,6 +8,7 @@
 #include "UBO.h"
 #include "mesh.h"
 #include "timer.h"
+#include "csgtree.h"
 #include "csgarray.h"
 
 #include <thread>
@@ -22,9 +23,26 @@ struct Uniforms{
 	vec4 light_pos;
 };
 
+/*
 void remesh(CSGArray* ary, VertexBuffer* vb, bool* done, float spu){
 	vb->clear();
 	ary->remesh(*vb, spu);
+	*done = true;
+}
+*/
+
+void remesh(CSGNode* node, CSGList* insertQueue, VertexBuffer* vb, bool* done, float spu){
+	vb->clear();
+	for(CSG& i : *insertQueue){
+		insert(node, i);
+	}
+	insertQueue->clear();
+	std::vector<CSGNode*> nodes;
+	collect(nodes, node);
+	for(CSGNode* i : nodes){
+		i->remesh(spu);
+		vb->insert(vb->end(), i->vb.begin(), i->vb.end());
+	}
 	*done = true;
 }
 
@@ -58,7 +76,8 @@ int main(int argc, char* argv[]){
 	Input input(window.getWindow());
 	GLProgram colorProg("vert.glsl", "frag.glsl");
 	
-	CSGArray csgary(3.0f);
+	//CSGArray csgary(3.0f);
+	CSGNode root;
 	Mesh brushMesh;
 	VertexBuffer vb;
 	Mesh mesh;
@@ -84,6 +103,10 @@ int main(int argc, char* argv[]){
     float spu = 15.0f;
     bool remeshed = false;
     thread* worker = nullptr;
+    CSGList* workQueue[2];
+    workQueue[0] = new CSGList();
+    workQueue[1] = new CSGList();
+    int wqid = 0;
     while(window.open()){
         input.poll(frameBegin(i, t), camera);
     	waitcounter--;
@@ -119,23 +142,22 @@ int main(int argc, char* argv[]){
 		uni.MVP = VP;
 		unibuf.upload(&uni, sizeof(uni));
 		if(input.leftMouseDown() && waitcounter < 0){
-			waitcounter = 10;
-			if(box)
-				csgary.insert(CSG(at, vec3(bsize), &BOXSADD, bsize, 1));
-			else
-				csgary.insert(CSG(at, vec3(bsize), &SPHERESADD, bsize, 1));
+			SDF_Base* type = &SPHERESADD;
+			if(box) type = &BOXSADD;
+			workQueue[wqid]->push_back(CSG(at, vec3(bsize), type, bsize, 1));
+			waitcounter = bsize * 30;
 			edit = true;
 		}
 		else if(input.rightMouseDown() && waitcounter < 0){
-			waitcounter = 10;
-			if(box)
-				csgary.insert(CSG(at, vec3(bsize), &BOXSUB, bsize, 1));
-			else
-				csgary.insert(CSG(at, vec3(bsize), &SPHERESUB, bsize, 1));
+			SDF_Base* type = &SPHERESUB;
+			if(box) type = &BOXSUB;
+			workQueue[wqid]->push_back(CSG(at, vec3(bsize), type, bsize, 1)); 
+			waitcounter = bsize * 30;
 			edit = true;
 		}
 		if(edit && !worker){
-			worker = new thread(&remesh, &csgary, &vb, &remeshed, spu);
+			worker = new thread(&remesh, &root, workQueue[wqid], &vb, &remeshed, spu);
+			wqid = (wqid+1)%2;
 			edit = false;
 		}
 		if(remeshed){
@@ -152,6 +174,8 @@ int main(int argc, char* argv[]){
     }
     if(worker)worker->join();
     delete worker;
+    delete workQueue[0];
+    delete workQueue[1];
     return 0;
 }
 
