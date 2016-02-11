@@ -150,6 +150,8 @@ int main(int argc, char* argv[]){
 		//timer.endPrint();
         window.swap();
     }
+    if(worker)worker->join();
+    delete worker;
     return 0;
 }
 

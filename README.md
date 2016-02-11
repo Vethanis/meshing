@@ -1,6 +1,6 @@
 # meshing
 Point renderer of SDF sculpting.
-[YouTube Video](https://www.youtube.com/watch?v=9jgfptoA-S4)
+[YouTube Video](https://youtu.be/zhM_QXTWPGQ)
 
 Dependencies:
   OpenGL 4.3
