@@ -5,7 +5,7 @@
 #include "debugmacro.h"
 #include "mesh.h"
 
-#define MAX_CSGS 27
+#define MAX_CSGS 20
 
 enum AXIS{
 	NONE,

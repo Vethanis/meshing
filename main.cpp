@@ -60,7 +60,7 @@ int main(int argc, char* argv[]){
 	Input input(window.getWindow());
 	GLProgram colorProg("vert.glsl", "frag.glsl");
 	
-	CSGArray csgary(3.0f);
+	CSGArray csgary(4.0f);
 	Mesh brushMesh;
 	brushMesh.init();
 	VertexBuffer vb;
@@ -83,7 +83,7 @@ int main(int argc, char* argv[]){
     bool brush_changed = true;
     bool box = false;
     bool edit = false;
-    float spu = 15.0f;
+    float spu = 7.0f;
     bool remeshed = false;
     CSGList workQueue[2];
     thread* worker = nullptr;
@@ -130,14 +130,14 @@ int main(int argc, char* argv[]){
 			SDF_Base* type = &SPHERESADD;
 			if(box) type = &BOXSADD;
 			workQueue[wqid].push_back(CSG(at, vec3(bsize), type, bsize, 1));
-			waitcounter = bsize * 20;
+			waitcounter = bsize * 30;
 			edit = true;
 		}
 		else if(input.rightMouseDown() && waitcounter < 0){
 			SDF_Base* type = &SPHERESUB;
 			if(box) type = &BOXSUB;
 			workQueue[wqid].push_back(CSG(at, vec3(bsize), type, bsize, 1)); 
-			waitcounter = bsize * 20;
+			waitcounter = bsize * 30;
 			edit = true;
 		}
 		
