@@ -5,7 +5,7 @@
 #include "debugmacro.h"
 #include "mesh.h"
 
-#define MAX_CSGS 20
+#define MAX_CSGS 27
 
 enum AXIS{
 	NONE,
@@ -28,21 +28,24 @@ struct CSGNode{
 		old = true;
 	}
 	inline bool full(){return list.size() > MAX_CSGS;}
-	inline void remesh(float spu){
-		if(!old)return;
-		vb.clear();
-		fillCells(vb, list, spu);
-		old = false;
+	inline void remesh(VertexBuffer& rootvb, float spu){
+		if(old){
+			vb.clear();
+			fillCells(vb, list, spu);
+			old = false;
+		}
+		rootvb.insert(rootvb.end(), vb.begin(), vb.end());
 	}
 };
 
 inline void collect(std::vector<CSGNode*>& nodes, CSGNode* node){
-	PRINTLINEMACRO
 	nodes.push_back(node);
 	unsigned i = 0;
 	while(true){
-		if(nodes[i]->left) nodes.push_back(nodes[i]->left);
-		if(nodes[i]->right) nodes.push_back(nodes[i]->right);
+		if(nodes[i]->left){
+			nodes.push_back(nodes[i]->left);
+			nodes.push_back(nodes[i]->right);
+		}
 		i++;
 		if(i >= nodes.size())break;
 	}
@@ -50,24 +53,20 @@ inline void collect(std::vector<CSGNode*>& nodes, CSGNode* node){
 
 inline void split(CSGNode& node){
 	glm::vec3 max, min;
-	PRINTLINEMACRO
 	getBounds(node.list, min, max);
-	PRINTLINEMACRO
-	glm::vec3 diff = max - min;
+	glm::vec3 diff = glm::abs(max - min);
 	glm::vec3 center = 0.5f * (min + max);
 	float maxv = glm::max(glm::max(diff.x, diff.y), diff.z);
-	PRINTLINEMACRO
-	if(node.left == nullptr) node.left = new CSGNode;
-	if(node.right == nullptr) node.right = new CSGNode;
-	PRINTLINEMACRO
+	if(node.left == nullptr){
+		node.left = new CSGNode;
+		node.right = new CSGNode;
+	}
 	auto* left = node.left;
 	auto* right = node.right;
-	PRINTLINEMACRO
 	if(maxv == diff.x){
 		node.center = center.x;
 		node.axis = X;
 		for(auto i = begin(node.list); i != end(node.list); ){
-			PRINTLINEMACRO
 			if(i->max().x < node.center){
 				left->add(*i);
 				i = node.list.erase(i);
@@ -84,7 +83,6 @@ inline void split(CSGNode& node){
 		node.center = center.y;
 		node.axis = Y;
 		for(auto i = begin(node.list); i != end(node.list); ){
-			PRINTLINEMACRO
 			if(i->max().y < node.center){
 				left->add(*i);
 				i = node.list.erase(i);
@@ -101,7 +99,6 @@ inline void split(CSGNode& node){
 		node.center = center.z;
 		node.axis = Z;
 		for(auto i = begin(node.list); i != end(node.list); ){
-			PRINTLINEMACRO
 			if(i->max().z < node.center){
 				left->add(*i);
 				i = node.list.erase(i);
@@ -118,17 +115,14 @@ inline void split(CSGNode& node){
 
 inline void insert(CSGNode* node, const CSG& item){
 	CSGNode* cur = node;
-	PRINTLINEMACRO
 	while(cur){
 		switch(cur->axis){
 			case NONE:{
-				PRINTLINEMACRO
 				cur->add(item);
 				if(cur->full()) split(*cur);
 				return;
 			}break;
 			case X:{
-				PRINTLINEMACRO
 				if(item.max().x < cur->center){
 					if(cur->left) cur = cur->left;
 					else{
@@ -150,8 +144,7 @@ inline void insert(CSGNode* node, const CSG& item){
 					return;
 				}
 			}break;
-			case Y:{
-				PRINTLINEMACRO		
+			case Y:{	
 				if(item.max().y < cur->center){
 					if(cur->left) cur = cur->left;
 					else{
@@ -174,7 +167,6 @@ inline void insert(CSGNode* node, const CSG& item){
 				}
 			}break;
 			case Z:{
-				PRINTLINEMACRO
 				if(item.max().z < cur->center){
 					if(cur->left) cur = cur->left;
 					else{

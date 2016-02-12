@@ -4,12 +4,13 @@
 #include "vertexbuffer.h"
 
 class Mesh{
-	unsigned vao, vbo, num_vertices;
 public:
-	Mesh();
-	~Mesh();
+	unsigned vao, vbo, num_vertices;
+	Mesh() : num_vertices(0){};
 	void draw();
-	void upload(const VertexBuffer& vbuf);
+	void update(VertexBuffer& vb);
+	void init();
+	void destroy();
 };
 
 #endif

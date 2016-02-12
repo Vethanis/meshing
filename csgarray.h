@@ -6,76 +6,105 @@
 #include <set>
 #include <algorithm>
 #include "mesh.h"
+#include "csgtree.h"
 
-int hash(const glm::vec3& v, float cell_size){
-	constexpr int p1 = 999883;
-	constexpr int p2 = 984047;
-	constexpr int p3 = 964637;
-	int x = v.x - fmod(v.x, cell_size);
-	int y = v.y - fmod(v.y, cell_size);
-	int z = v.z - fmod(v.z, cell_size);
-	return x * p1 ^ y * p2 ^ z * p3;
+unsigned hash(const glm::vec3& v, float cell_size){
+	constexpr unsigned p1 = 2147483647;
+	constexpr unsigned p2 = 981986576;
+	constexpr unsigned p3 = 1359374631;
+	unsigned x = v.x - fmod(v.x, cell_size);
+	unsigned y = v.y - fmod(v.y, cell_size);
+	unsigned z = v.z - fmod(v.z, cell_size);
+	return (x * p1) ^ (y * p2) ^ (z * p3);
 }
 
 struct CSGItem{
-	CSGList list;
+	CSGNode root;
+	Mesh mesh;
 	VertexBuffer vb;
-	bool old;
-	CSGItem() : old(true){};
-	CSGItem(const CSG& item) : old(true){
-		list.push_back(item);
+	unsigned items;
+	bool old, initialised;
+	CSGItem() : items(0), old(true), initialised(false){};
+	inline void init(){
+		mesh.init();
+		initialised = true;
+		printf("Mesh created with id: %u\n", mesh.vbo);
 	}
-	void insert(const CSG& item){
-		list.push_back(item);
+	inline void insert(const CSG& item){
+		::insert(&root, item);
 		old = true;
+		items++;
 	}
-	void remesh(float spu){
+	inline void remesh(float spu){
 		if(!old)return;
-		old = false;
 		vb.clear();
-		fillCells(vb, list, spu);
+		std::vector<CSGNode*> nodes;
+		nodes.reserve(glm::max(2, (int)items / MAX_CSGS));
+		collect(nodes, &root);
+		for(CSGNode* i : nodes){
+			i->remesh(vb, spu);
+		}
+	}
+	inline void update(){
+		if(!old)return;
+		if(!initialised)this->init();
+		mesh.update(vb);
+		vb.clear();
+		old = false;
+	}
+	inline void draw(){
+		mesh.draw();
+	}
+	inline void destroy(){
+		mesh.destroy();
 	}
 };
 
 struct CSGArray{
-	std::unordered_map<int, CSGItem> data;
+	std::unordered_map<unsigned, CSGItem> data;
 	float cell_size;
-	bool old;
-	CSGArray(float csize) : cell_size(csize), old(true){};
+	CSGArray(float csize) : cell_size(csize){
+	};
+	~CSGArray(){
+		for(auto& i : data){
+			i.second.destroy();
+		}
+	}
 	inline void getPoints(std::vector<glm::vec3>& pts, const CSG& item){
 		glm::vec3 lo = item.min();
 		glm::vec3 hi = item.max();
-		for(float z = lo.z; z < hi.z; z += cell_size){
-		for(float y = lo.y; y < hi.y; y += cell_size){
-		for(float x = lo.x; x < hi.x; x += cell_size){
+		glm::vec3 pitch = glm::min(hi-lo, glm::vec3(cell_size));
+		for(float z = lo.z; z <= hi.z; z += pitch.z){
+		for(float y = lo.y; y <= hi.y; y += pitch.y){
+		for(float x = lo.x; x <= hi.x; x += pitch.x){
 			pts.push_back({x, y, z});
 		}}}
 	}
 	inline void insert(const CSG& item){
-		old = true;
 		std::vector<glm::vec3> points;
 		getPoints(points, item);
-		std::set<int> keys;
+		std::set<unsigned> keys;
 		for(auto& i : points){
 			keys.insert(hash(i, cell_size));
 		}
-		for(auto j : keys){
-			auto i = data.find(j);
-			if(i == std::end(data)){
-				data[j] = CSGItem(item);
-			}
-			else{
-				i->second.insert(item);
-			}
+		for(unsigned k : keys){
+			auto itb = data.insert({k, CSGItem()});
+			itb.first->second.insert(item);
 		}
 	}
-	inline void remesh(VertexBuffer& vb, float spu){
-		if(!old)return;
-		old = false;
-		vb.clear();
+	inline void remesh(float spu){
 		for(auto& i : data){
 			i.second.remesh(spu);
-			vb.insert(std::end(vb), std::begin(i.second.vb), std::end(i.second.vb));
+		}
+	}
+	inline void update(){
+		for(auto& i : data){
+			i.second.update();
+		}
+	}
+	inline void draw(){
+		for(auto& i : data){
+			i.second.draw();
 		}
 	}
 };

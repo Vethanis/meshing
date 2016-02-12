@@ -2,7 +2,7 @@
 #include "mesh.h"
 #include "debugmacro.h"
 
-Mesh::Mesh(){
+void Mesh::init(){
 	num_vertices = 0;
 	glGenVertexArrays(1, &vao);
 	glGenBuffers(1, &vbo);
@@ -24,21 +24,25 @@ Mesh::Mesh(){
 	
 	MYGLERRORMACRO
 }
-Mesh::~Mesh(){
+
+void Mesh::destroy(){
 	glDeleteBuffers(1, &vbo);
 	glDeleteVertexArrays(1, &vao);
 	MYGLERRORMACRO
 }
-void Mesh::draw(){
-	glBindVertexArray(vao);
-	glDrawArrays(GL_POINTS, 0, num_vertices);
-	MYGLERRORMACRO
-}
-void Mesh::upload(const VertexBuffer& vbuf){
-	num_vertices = vbuf.size();
+
+void Mesh::update(VertexBuffer& vb){
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex)*num_vertices, &vbuf[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex)*vb.size(), &vb[0], GL_STATIC_DRAW);
+	MYGLERRORMACRO
+	num_vertices = vb.size();
+}
+
+void Mesh::draw(){
+	if(!num_vertices)return;
+	glBindVertexArray(vao);
+	glDrawArrays(GL_POINTS, 0, num_vertices);
 	MYGLERRORMACRO
 }
 

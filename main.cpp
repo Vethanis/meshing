@@ -8,11 +8,8 @@
 #include "UBO.h"
 #include "mesh.h"
 #include "timer.h"
-#include "csgtree.h"
 #include "csgarray.h"
-
 #include <thread>
-
 
 using namespace std;
 using namespace glm;
@@ -23,28 +20,15 @@ struct Uniforms{
 	vec4 light_pos;
 };
 
-/*
-void remesh(CSGArray* ary, VertexBuffer* vb, bool* done, float spu){
-	vb->clear();
-	ary->remesh(*vb, spu);
-	*done = true;
-}
-*/
-
-void remesh(CSGNode* node, CSGList* insertQueue, VertexBuffer* vb, bool* done, float spu){
-	vb->clear();
-	for(CSG& i : *insertQueue){
-		insert(node, i);
+void remesh(CSGArray* ary, CSGList* insertQueue, bool* done, float spu){
+	for(auto& i : *insertQueue){
+		ary->insert(i);
 	}
 	insertQueue->clear();
-	std::vector<CSGNode*> nodes;
-	collect(nodes, node);
-	for(CSGNode* i : nodes){
-		i->remesh(spu);
-		vb->insert(vb->end(), i->vb.begin(), i->vb.end());
-	}
+	ary->remesh(spu);
 	*done = true;
 }
+
 
 double frameBegin(unsigned& i, double& t){
     double dt = glfwGetTime() - t;
@@ -76,11 +60,10 @@ int main(int argc, char* argv[]){
 	Input input(window.getWindow());
 	GLProgram colorProg("vert.glsl", "frag.glsl");
 	
-	//CSGArray csgary(3.0f);
-	CSGNode root;
+	CSGArray csgary(3.0f);
 	Mesh brushMesh;
+	brushMesh.init();
 	VertexBuffer vb;
-	Mesh mesh;
 	
 	Timer timer;
 	
@@ -102,10 +85,8 @@ int main(int argc, char* argv[]){
     bool edit = false;
     float spu = 15.0f;
     bool remeshed = false;
+    CSGList workQueue[2];
     thread* worker = nullptr;
-    CSGList* workQueue[2];
-    workQueue[0] = new CSGList();
-    workQueue[1] = new CSGList();
     int wqid = 0;
     while(window.open()){
         input.poll(frameBegin(i, t), camera);
@@ -128,54 +109,62 @@ int main(int argc, char* argv[]){
 		else if(glfwGetKey(window.getWindow(), GLFW_KEY_4)){spu *= 0.99f;}
 		
 		if(brush_changed){
-			VertexBuffer brushbuf;			
+			unsigned sz = (vb.size()) ? (vb.size() >> 1) : 512;
+			vb.clear();
+			vb.reserve(sz);
 			if(box)
-				fillCells(brushbuf, CSG(vec3(0.0f), vec3(bsize), &BOXADD, bsize, 1), spu);
+				fillCells(vb, CSG(vec3(0.0f), vec3(bsize), &BOXADD, bsize, 1), spu);
 			else
-				fillCells(brushbuf, CSG(vec3(0.0f), vec3(bsize), &SPHEREADD, bsize, 1), spu);
-			brushMesh.upload(brushbuf);
+				fillCells(vb, CSG(vec3(0.0f), vec3(bsize), &SPHEREADD, bsize, 1), spu);
+			brushMesh.update(vb);
 			brush_changed = false;
 		}
+		
 		colorProg.bind();
 		brushMesh.draw();
 		
 		uni.MVP = VP;
 		unibuf.upload(&uni, sizeof(uni));
+		
 		if(input.leftMouseDown() && waitcounter < 0){
 			SDF_Base* type = &SPHERESADD;
 			if(box) type = &BOXSADD;
-			workQueue[wqid]->push_back(CSG(at, vec3(bsize), type, bsize, 1));
-			waitcounter = bsize * 30;
+			workQueue[wqid].push_back(CSG(at, vec3(bsize), type, bsize, 1));
+			waitcounter = bsize * 20;
 			edit = true;
 		}
 		else if(input.rightMouseDown() && waitcounter < 0){
 			SDF_Base* type = &SPHERESUB;
 			if(box) type = &BOXSUB;
-			workQueue[wqid]->push_back(CSG(at, vec3(bsize), type, bsize, 1)); 
-			waitcounter = bsize * 30;
+			workQueue[wqid].push_back(CSG(at, vec3(bsize), type, bsize, 1)); 
+			waitcounter = bsize * 20;
 			edit = true;
 		}
+		
 		if(edit && !worker){
-			worker = new thread(&remesh, &root, workQueue[wqid], &vb, &remeshed, spu);
+			worker = new thread(&remesh, &csgary, &workQueue[wqid], &remeshed, spu);
 			wqid = (wqid+1)%2;
 			edit = false;
 		}
+		
 		if(remeshed){
 			worker->join();
 			delete worker;
 			worker = nullptr;
-			mesh.upload(vb);
+			csgary.update();
 			remeshed = false;
 		}
+		
 		//timer.begin();
-		mesh.draw();
+		
+		csgary.draw();
+		
 		//timer.endPrint();
         window.swap();
     }
     if(worker)worker->join();
     delete worker;
-    delete workQueue[0];
-    delete workQueue[1];
+    brushMesh.destroy();
     return 0;
 }
 
