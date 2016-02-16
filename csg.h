@@ -164,9 +164,66 @@ inline void getBounds(CSGList& list, glm::vec3& lo, glm::vec3& hi){
 
 inline float map(const glm::vec3& p, CSGList& list){
 	float min = FLT_MAX;
-	for(auto& i : list)
+	for(CSG& i : list)
 		min = i.blend(min, i.func(p));
 	return min;
+}
+
+inline float map(const glm::vec3& p, std::vector<CSG*>& list){
+	float min = FLT_MAX;
+	for(CSG* i : list)
+		min = i->blend(min, i->func(p));
+	return min;
+}
+
+inline void fillCells(VertexBuffer& vb, std::vector<CSG*>& list, const glm::vec3& min, const glm::vec3& max, float spu){
+	if(list.empty())return;
+	glm::vec3 dx(0.001f, 0.0f, 0.0f);
+	glm::vec3 dy(0.0f, 0.001f, 0.0f);
+	glm::vec3 dz(0.0f, 0.0f, 0.001f);
+	float pitch = 1.0f / spu;
+	float p2 = pitch * 0.5f;
+	float p3 = p2 * 0.5f;
+	float psize = (1280.0f+720.0f) * 0.5f * p3;
+	for(float z = min.z; z <= max.z; z += pitch){
+	for(float y = min.y; y <= max.y; y += pitch){
+	for(float x = min.x; x <= max.x; ){
+		glm::vec3 i(x, y, z);
+		float dis = map(i, list);
+		if(glm::abs(dis) < p2){
+			for(float z2 = i.z - p2; z2 <= i.z + p2; z2 += p2){
+			for(float y2 = i.y - p2; y2 <= i.y + p2; y2 += p2){
+			for(float x2 = i.x - p2; x2 <= i.x + p2;){
+				glm::vec3 k(x2, y2, z2);
+				float d2 = map(k, list);
+				if(glm::abs(d2) < p3){
+					for(float z3 = k.z - p3; z3 <= k.z + p3; z3 += p3){
+					for(float y3 = k.y - p3; y3 <= k.y + p3; y3 += p3){
+					for(float x3 = k.x - p3; x3 <= k.x + p3;){
+						glm::vec3 j(x3, y3, z3);
+						float d3 = map(j, list);
+						if(glm::abs(d3) < p3*0.5f){
+							for(int l = 0; l < 30; l++){
+								d3 = map(j, list);
+								glm::vec3 N = glm::normalize(glm::vec3(
+									map(j+dx, list) - map(j-dx, list),
+									map(j+dy, list) - map(j-dy, list),
+									map(j+dz, list) - map(j-dz, list)));
+								if(glm::abs(d3) < p3*0.25f){
+									vb.push_back(Vertex(j, N, N*0.5f + 0.5f, psize));
+									break;
+								}
+								j -= N * d3 * 0.75f;
+							}
+						}
+						x3 += glm::max(d3, p3);
+					}}}
+				}
+				x2 += glm::max(d2, p2);
+			}}}
+		}
+		x += glm::max(pitch, dis);
+	}}}
 }
 
 inline void fillCells(VertexBuffer& vb, CSGList& list, const glm::vec3& min, const glm::vec3& max, float spu){

@@ -8,7 +8,7 @@
 #include "UBO.h"
 #include "mesh.h"
 #include "timer.h"
-#include "csgarray.h"
+#include "octree.h"
 #include <thread>
 
 using namespace std;
@@ -20,12 +20,13 @@ struct Uniforms{
 	vec4 light_pos;
 };
 
-void remesh(CSGArray* ary, CSGList* insertQueue, bool* done, float spu){
+void remesh(OctNode* root, CSGList* insertQueue, VertexBuffer* vb, bool* done, float spu){
 	for(auto& i : *insertQueue){
-		ary->insert(i);
+		root->insert(new CSG(i));
 	}
 	insertQueue->clear();
-	ary->remesh(spu);
+	vb->clear();
+	root->remesh(*vb, spu);
 	*done = true;
 }
 
@@ -60,7 +61,9 @@ int main(int argc, char* argv[]){
 	Input input(window.getWindow());
 	GLProgram colorProg("vert.glsl", "frag.glsl");
 	
-	CSGArray csgary(4.0f);
+	OctNode root(glm::vec3(0.0f), 16.0f, 0);
+	Mesh rootMesh;
+	rootMesh.init();
 	Mesh brushMesh;
 	brushMesh.init();
 	VertexBuffer vb;
@@ -132,6 +135,7 @@ int main(int argc, char* argv[]){
 			workQueue[wqid].push_back(CSG(at, vec3(bsize), type, bsize, 1));
 			waitcounter = bsize * 30;
 			edit = true;
+			print(at);
 		}
 		else if(input.rightMouseDown() && waitcounter < 0){
 			SDF_Base* type = &SPHERESUB;
@@ -139,10 +143,11 @@ int main(int argc, char* argv[]){
 			workQueue[wqid].push_back(CSG(at, vec3(bsize), type, bsize, 1)); 
 			waitcounter = bsize * 30;
 			edit = true;
+			print(at);
 		}
 		
 		if(edit && !worker){
-			worker = new thread(&remesh, &csgary, &workQueue[wqid], &remeshed, spu);
+			worker = new thread(&remesh, &root, &workQueue[wqid], &(root.vb), &remeshed, spu);
 			wqid = (wqid+1)%2;
 			edit = false;
 		}
@@ -151,19 +156,20 @@ int main(int argc, char* argv[]){
 			worker->join();
 			delete worker;
 			worker = nullptr;
-			csgary.update();
+			rootMesh.update(root.vb);
 			remeshed = false;
 		}
 		
 		//timer.begin();
 		
-		csgary.draw();
+		rootMesh.draw();
 		
 		//timer.endPrint();
         window.swap();
     }
     if(worker)worker->join();
     delete worker;
+    rootMesh.destroy();
     brushMesh.destroy();
     return 0;
 }
