@@ -20,9 +20,9 @@ struct Uniforms{
 	vec4 light_pos;
 };
 
-void remesh(OctNode* root, CSGList* insertQueue, VertexBuffer* vb, bool* done, float spu){
-	for(auto& i : *insertQueue){
-		root->insert(new CSG(i));
+void remesh(OctNode* root, std::vector<CSG*>* insertQueue, VertexBuffer* vb, bool* done, float spu){
+	for(CSG* i : *insertQueue){
+		root->insert(i);
 	}
 	insertQueue->clear();
 	vb->clear();
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]){
 	Input input(window.getWindow());
 	GLProgram colorProg("vert.glsl", "frag.glsl");
 	
-	OctNode root(glm::vec3(0.0f), 16.0f, 0);
+	OctNode root(glm::vec3(0.0f), 8.0f, 0);
 	Mesh rootMesh;
 	rootMesh.init();
 	Mesh brushMesh;
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]){
     bool edit = false;
     float spu = 7.0f;
     bool remeshed = false;
-    CSGList workQueue[2];
+    std::vector<CSG*> workQueue[2];
     thread* worker = nullptr;
     int wqid = 0;
     while(window.open()){
@@ -132,7 +132,7 @@ int main(int argc, char* argv[]){
 		if(input.leftMouseDown() && waitcounter < 0){
 			SDF_Base* type = &SPHERESADD;
 			if(box) type = &BOXSADD;
-			workQueue[wqid].push_back(CSG(at, vec3(bsize), type, bsize, 1));
+			workQueue[wqid].push_back(new CSG(at, vec3(bsize), type, bsize, 1));
 			waitcounter = bsize * 30;
 			edit = true;
 			print(at);
@@ -140,7 +140,7 @@ int main(int argc, char* argv[]){
 		else if(input.rightMouseDown() && waitcounter < 0){
 			SDF_Base* type = &SPHERESUB;
 			if(box) type = &BOXSUB;
-			workQueue[wqid].push_back(CSG(at, vec3(bsize), type, bsize, 1)); 
+			workQueue[wqid].push_back(new CSG(at, vec3(bsize), type, bsize, 1)); 
 			waitcounter = bsize * 30;
 			edit = true;
 			print(at);
