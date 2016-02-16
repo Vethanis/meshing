@@ -1,9 +1,7 @@
 # meshing
 Point renderer of SDF sculpting.
 
-[HashTable Video](https://youtu.be/zhM_QXTWPGQ)
-
-[Async KD Tree Video](https://youtu.be/fSCYRNSLmAw)
+[Video](https://youtu.be/6Rybvj4Wzpk)
 
 Dependencies:
   OpenGL 4.3
