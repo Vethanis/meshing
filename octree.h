@@ -8,6 +8,7 @@
 struct OctNode{
 	glm::vec3 center;
 	float length;
+	float qlen;
 	int depth;
 	bool old;
 	VertexBuffer vb;
@@ -16,6 +17,7 @@ struct OctNode{
 	// always instantiate root node with depth 0
 	OctNode(const glm::vec3& c, float len=2.0f, int d=0) : center(c), length(len), depth(d), old(false){
 		children.clear();
+		qlen = glm::length(glm::vec3(length));
 	}
 	~OctNode(){
 		if(depth == 0){
@@ -40,7 +42,7 @@ struct OctNode{
 	}
 	// always pass an item on the heap here
 	inline void insert(CSG* item){
-		if(item->func(center) > glm::length(glm::vec3(length)))return;
+		if(item->func(center) > qlen)return;
 		items.push_back(item);
 		old = true;
 		makeChildren();
