@@ -4,7 +4,7 @@ An interactive application for sculpting in 3D.
 Distance functions defining the surface of a shape can be added additively and subtractively to form complex shapes.
 Functions are added to an octree which causes affected areas to be re-evaluated.
 
-Markup : * Controls:
+__Controls:__
 	  * mouse movement: look around
 	  * left click: apply brush additively
 	  * right click: apply brush subtractively
@@ -17,7 +17,7 @@ Markup : * Controls:
 
 [Video](https://youtu.be/6Rybvj4Wzpk)
 
-Markup : * Dependencies:
+__Dependencies:__
   	  * OpenGL 4.3
   	  * glew
   	  * glfw3
@@ -25,10 +25,10 @@ Markup : * Dependencies:
   	  * clang
   	  * make
   
-Markup : * Building:
+__Building:__
 	  * make -j release
 
-Markup : * Running:
+__Running:__
 	  * make run
 
 ![alt tag](http://i.imgur.com/fyDl3kW.png)
