@@ -3,7 +3,8 @@ An interactive application for sculpting in 3D.
 
 Distance functions defining the surface of a shape can be added additively and subtractively to form complex shapes.
 Functions are added to an octree which causes affected areas to be re-evaluated.
-
+Function evaluation consists of iterating over a hierarchical grid to find distances smaller than some threshold.
+Zero-crossing points are collected and uploaded to an openGL vertex buffer, then drawn.
 
 __[Video](https://youtu.be/6Rybvj4Wzpk)__
 
