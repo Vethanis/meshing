@@ -14,7 +14,7 @@ __Controls:__
 * right click: apply brush subtractively
 * 1 key: toggle between sphere and cube brushes
 * Up Arrow, Down Arrow: increase or decrease brush size
-* 3 and 4 keys: decrease or increase brush fidelity
+* 3 and 4 keys: increase and decrease brush fidelity
 * WS: forward and backward
 * AD: left and right
 * left shift, space: down and up
