@@ -1,20 +1,10 @@
-EXE = Renderer.exe
+EXE = meshing.exe
 
-ifeq ($(OS), Windows_NT)
-	CXX = g++
-	INC_DIRS = -I./include
-	CXXFLAGS = $(INC_DIRS) -std=c++11 -Wfatal-errors -Wall
-	LDFLAGS = -L./lib
-	LDLIBS = .\glfw3.dll -lglew32 -lopengl32
-else 
-	ifeq ($(shell uname), Linux)
-		CXX = clang++
-		INC_DIRS = -I/usr/include
-		CXXFLAGS = $(INC_DIRS) -std=c++11 -pthread -stdlib=libstdc++ -Wfatal-errors -Wall
-		LDFLAGS = -L/usr/lib
-		LDLIBS = -lGLEW -lGL -lglfw -pthread
-	endif
-endif
+CXX = clang++
+INC_DIRS = -I/usr/include
+CXXFLAGS = $(INC_DIRS) -std=c++11 -pthread -stdlib=libstdc++ -Wfatal-errors -Wall
+LDFLAGS = -L/usr/lib
+LDLIBS = -lGLEW -lGL -lglfw -pthread
 
 
 LINK = $(CXX) -o

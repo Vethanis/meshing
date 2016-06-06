@@ -25,7 +25,7 @@ void Input::poll(){
     glfwPollEvents();
 }
 
-void Input::poll(double dt, Camera& cam){
+void Input::poll(float dt, Camera& cam){
     glfwPollEvents();
     glm::vec3 v(0.0f);
     v.z -= glfwGetKey(m_glwindow, GLFW_KEY_W) ? dt : 0.0f;
@@ -97,7 +97,7 @@ void Input::cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 }
 
 void Input::scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
-    m_relScroll = yoffset - m_scrollOffset;
+    m_relScroll = (float)yoffset - m_scrollOffset;
     m_scrollOffset = (float)yoffset;
 }
 

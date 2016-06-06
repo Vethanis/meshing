@@ -15,8 +15,8 @@ struct SDF_Base{
 };
 
 inline float smin(float a, float b, float k){
-    float h = glm::clamp( 0.5+0.5*(b-a)/k, 0.0, 1.0 );
-    return glm::mix( b, a, h ) - k*h*(1.0-h);
+    float h = glm::clamp( 0.5f+0.5f*(b-a)/k, 0.0f, 1.0f );
+    return glm::mix( b, a, h ) - k*h*(1.0f-h);
 }
 
 struct SphereAdd : public SDF_Base{

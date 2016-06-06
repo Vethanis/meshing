@@ -39,7 +39,7 @@ public:
 		V = glm::lookAt(m_eye, m_at, up_vec);
 	}
 	inline void resize(int width, int height){
-		m_whratio = (double)width / (double)height;
+		m_whratio = (float)width / (float)height;
 		P = glm::perspective(m_fov, m_whratio, m_near, m_far);
 	}
 	inline void setFov(float fov){

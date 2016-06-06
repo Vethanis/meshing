@@ -36,7 +36,7 @@ void Mesh::update(VertexBuffer& vb){
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex)*vb.size(), &vb[0], GL_STATIC_DRAW);
 	MYGLERRORMACRO
-	num_vertices = vb.size();
+	num_vertices = (unsigned)vb.size();
 }
 
 void Mesh::draw(){

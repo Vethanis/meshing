@@ -31,12 +31,12 @@ void remesh(OctNode* root, std::vector<CSG*>* insertQueue, VertexBuffer* vb, boo
 }
 
 
-double frameBegin(unsigned& i, double& t){
-    double dt = glfwGetTime() - t;
+float frameBegin(unsigned& i, float& t){
+    float dt = (float)glfwGetTime() - t;
     t += dt;
     i++;
     if(t >= 3.0){
-    	double ms = (t / i) * 1000.0;
+    	float ms = (t / i) * 1000.0f;
         printf("ms: %.6f, FPS: %.3f\n", ms, i / t);
         i = 0;
         t = 0.0;
@@ -47,6 +47,7 @@ double frameBegin(unsigned& i, double& t){
 
 int main(int argc, char* argv[]){
 	if(argc != 3){
+        printf("Usage: meshing.exe <width> <height>\n");
 		return 1;
 	}
 	
@@ -81,7 +82,7 @@ int main(int argc, char* argv[]){
 	
 	input.poll();
     unsigned i = 0;
-    double t = glfwGetTime();
+    float t = (float)glfwGetTime();
     int waitcounter = 10;
     bool brush_changed = true;
     bool box = false;
@@ -112,7 +113,7 @@ int main(int argc, char* argv[]){
 		else if(glfwGetKey(window.getWindow(), GLFW_KEY_4)){spu *= 0.99f;}
 		
 		if(brush_changed){
-			unsigned sz = (vb.size()) ? (vb.size() >> 1) : 512;
+			size_t sz = (vb.size()) ? (vb.size() >> 1) : 512;
 			vb.clear();
 			vb.reserve(sz);
 			if(box)
@@ -133,7 +134,7 @@ int main(int argc, char* argv[]){
 			SDF_Base* type = &SPHERESADD;
 			if(box) type = &BOXSADD;
 			workQueue[wqid].push_back(new CSG(at, vec3(bsize), type, bsize, 1));
-			waitcounter = bsize * 30;
+			waitcounter = (int)(bsize * 30.0f);
 			edit = true;
 			print(at);
 		}
@@ -141,7 +142,7 @@ int main(int argc, char* argv[]){
 			SDF_Base* type = &SPHERESUB;
 			if(box) type = &BOXSUB;
 			workQueue[wqid].push_back(new CSG(at, vec3(bsize), type, bsize, 1)); 
-			waitcounter = bsize * 30;
+			waitcounter = (int)(bsize * 30.0f);
 			edit = true;
 			print(at);
 		}

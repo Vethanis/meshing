@@ -18,7 +18,7 @@ class Input{
 public:
     Input(GLFWwindow* window);
     void poll();
-    void poll(double dt, Camera& cam);
+    void poll(float dt, Camera& cam);
     static bool rightMouseDown();
     static bool leftMouseDown();
     static float scrollOffset();
