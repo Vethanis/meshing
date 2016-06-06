@@ -19,8 +19,7 @@ __Controls:__
 * AD: left and right
 * left shift, space: down and up
 
-
-__Dependencies:__
+__Linux Dependencies:__
 * OpenGL 4.3
 * glew
 * glfw3
@@ -28,10 +27,16 @@ __Dependencies:__
 * clang
 * make
   
-__Building:__
+__Linux Building:__
 * make -j release
 
-__Running:__
+__Linux Running:__
 * make run
+
+__Windows Usage:__
+* requires VS2015 installed at default location, or an x64 cmd environment
+* loadenv.bat
+* build.bat
+* run.bat
 
 ![alt tag](http://i.imgur.com/fyDl3kW.png)
