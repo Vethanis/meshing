@@ -46,14 +46,16 @@ float frameBegin(unsigned& i, float& t){
 }
 
 int main(int argc, char* argv[]){
-	if(argc != 3){
-        printf("Usage: meshing.exe <width> <height>\n");
-		return 1;
+    
+    int WIDTH = 1280;
+    int HEIGHT = 720;
+    
+	if(argc >= 3){
+        WIDTH = atoi(argv[1]);
+        HEIGHT = atoi(argv[2]);
 	}
 	
 	Camera camera;
-	const int WIDTH = atoi(argv[1]);
-	const int HEIGHT = atoi(argv[2]);
 	camera.resize(WIDTH, HEIGHT);
 	camera.setEye(vec3(0.0f, 0.0f, 3.0f));
 	camera.update();
