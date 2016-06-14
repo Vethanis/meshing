@@ -19,8 +19,7 @@ __Controls:__
 * AD: left and right
 * left shift, space: down and up
 
-
-__Dependencies:__
+__Linux Dependencies:__
 * OpenGL 4.3
 * glew
 * glfw3
@@ -28,10 +27,19 @@ __Dependencies:__
 * clang
 * make
   
-__Building:__
+__Linux Building:__
 * make -j release
 
-__Running:__
+__Linux Running:__
 * make run
+
+__Windows Usage:__
+* requires VS2015 installed at default location, or an x64 cmd environment
+* requires Windows 7.1A SDK installed in default location for OpenGL32.lib
+* loadenv.bat
+* build.bat
+* run.bat
+
+__[Windows Binary](https://drive.google.com/open?id=0B3fK-D-3t1mGaWJsZ0xMb0JCUFk)__
 
 ![alt tag](http://i.imgur.com/fyDl3kW.png)
