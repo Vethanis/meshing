@@ -33,7 +33,7 @@ __Linux Building:__
 __Linux Running:__
 * make run
 
-__Windows Usage:__
+__Windows Building:__
 * requires VS2015 installed at default location, or an x64 cmd environment
 * requires Windows 7.1A SDK installed in default location for OpenGL32.lib
 * loadenv.bat
