@@ -24,12 +24,12 @@ struct Uniforms{
 };
 
 class Worker{
-    CSG* buffer[128];
     thread m_thread;
     mutex thread_mtex, vb_mtex;
     condition_variable cvar;
     VertexBuffer vb;
     OctNode* root;
+    CSG* buffer[8];
     atomic<unsigned char> head, tail;
     float spu;
     bool run;
@@ -37,7 +37,7 @@ class Worker{
         return head.load(memory_order_relaxed) == tail.load(memory_order_relaxed); 
     }
     inline unsigned char next(atomic<unsigned char>& counter){
-        return (counter.load(memory_order_relaxed) + 1) & 127;
+        return (counter.load(memory_order_relaxed) + 1) & 7;
     }
     inline unsigned char current(atomic<unsigned char>& counter){
         return counter.load(memory_order_relaxed);
