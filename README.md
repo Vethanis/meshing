@@ -33,13 +33,13 @@ __Linux Building:__
 __Linux Running:__
 * make run
 
-__Windows Usage:__
+__Windows Building:__
 * requires VS2015 installed at default location, or an x64 cmd environment
 * requires Windows 7.1A SDK installed in default location for OpenGL32.lib
 * loadenv.bat
 * build.bat
 * run.bat
 
-__[Windows Binary](https://drive.google.com/open?id=0B3fK-D-3t1mGaWJsZ0xMb0JCUFk)__
+__[Windows Binary](https://github.com/gheshu/meshing/tree/master/build)__
 
 ![alt tag](http://i.imgur.com/fyDl3kW.png)
