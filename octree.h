@@ -3,7 +3,7 @@
 
 #include "csg.h"
 
-#define MINLEN 0.1f
+#define MINLEN 0.125f
 
 struct OctNode{
 	glm::vec3 center;
@@ -16,8 +16,8 @@ struct OctNode{
 	std::vector<OctNode> children;
 	// always instantiate root node with depth 0
 	OctNode(const glm::vec3& c, float len=2.0f, int d=0) : center(c), length(len), depth(d), old(false){
-		children.clear();
-		qlen = glm::length(glm::vec3(length));
+		children.reserve(8);
+		qlen = 1.732051f * len;     // length of vec3 => sqrt(len*len + len*len + len*len) => sqrt(len^2 * 3) => x * sqrt(3)
 	}
 	~OctNode(){
 		if(depth == 0){
@@ -26,11 +26,10 @@ struct OctNode{
 				delete i;
 		}
 	}
+	inline bool isLeaf(){return !children.size();}
 	inline void makeChildren(){
-		if(children.size())return;
 		const float nlen = length * 0.5f;
 		if(nlen < MINLEN)return;
-		children.reserve(8);
 		const int ndepth = depth + 1;
 		for(int i = 0; i < 8; i++){
             glm::vec3 n_c(center);
@@ -42,14 +41,18 @@ struct OctNode{
 	}
 	// always pass an item on the heap here
 	inline void insert(CSG* item){
-		if(item->func(center) > qlen)return;
-		items.push_back(item);
-		old = true;
-		makeChildren();
+		if(item->func(center) > qlen){
+            if(!depth)
+                delete item;
+            return;
+        }
+        items.push_back(item);
+        old = true;
+        if(this->isLeaf())
+            makeChildren();
 		for(auto& i : children)
 			i.insert(item);
 	}
-	inline bool isLeaf(){return children.size() == 0;}
 	inline void remesh(VertexBuffer& rootvb, float spu){
 		if(isLeaf()){
 			if(old){
@@ -59,8 +62,10 @@ struct OctNode{
 			}
 			rootvb.insert(rootvb.end(), vb.begin(), vb.end());
 		}
-		for(OctNode& i : children)
-			i.remesh(rootvb, spu);
+        else{
+            for(OctNode& i : children)
+                i.remesh(rootvb, spu);
+        }
 	}
 	inline void collectLeaves(std::vector<OctNode*>& list){
 		list.clear();

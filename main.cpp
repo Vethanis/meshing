@@ -10,6 +10,9 @@
 #include "timer.h"
 #include "octree.h"
 #include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
 
 using namespace std;
 using namespace glm;
@@ -20,15 +23,71 @@ struct Uniforms{
 	vec4 light_pos;
 };
 
-void remesh(OctNode* root, std::vector<CSG*>* insertQueue, VertexBuffer* vb, bool* done, float spu){
-	for(CSG* i : *insertQueue){
-		root->insert(i);
-	}
-	insertQueue->clear();
-	vb->clear();
-	root->remesh(*vb, spu);
-	*done = true;
-}
+class Worker{
+    CSG* buffer[128];
+    thread m_thread;
+    mutex thread_mtex, vb_mtex;
+    condition_variable cvar;
+    VertexBuffer vb;
+    OctNode* root;
+    atomic<unsigned short> head, tail;
+    float spu;
+    bool run;
+    inline bool empty(){ 
+        return head.load(memory_order_relaxed) == tail.load(memory_order_relaxed); 
+    }
+    inline unsigned short next(atomic<unsigned short>& counter){
+        return (counter.load(memory_order_relaxed) + 1) & 127;
+    }
+    inline unsigned short current(atomic<unsigned short>& counter){
+        return counter.load(memory_order_relaxed);
+    }
+    void kernel(){
+        while(run){
+            unique_lock<mutex> lock(thread_mtex);
+            cvar.wait(lock, [this]{return !Worker::empty() || !run;});
+            while(!empty()){
+                root->insert(buffer[current(head)]);
+                head = next(head);
+            }
+            lock_guard<mutex> vblock(vb_mtex);
+            vb.clear();
+            root->remesh(vb, spu);
+        }
+    }
+public:
+    Worker(OctNode* _root, float _spu) 
+        : root(_root), spu(_spu), head(0), tail(0), run(true){
+        m_thread = thread(&Worker::kernel, this);
+    }
+    inline void insert(CSG* csg, float _spu){
+        if(next(tail) == current(head)){ // avoid overflow
+            puts("OVERFLOW!");
+            delete csg;
+            return;
+        }
+        
+        buffer[tail] = csg;
+        spu = _spu;
+        tail = next(tail);
+        cvar.notify_one();
+    }
+    inline void pull(Mesh& mesh){
+        if(!vb.size())return;
+        unique_lock<mutex> vblock(vb_mtex, defer_lock);
+        if(vblock.try_lock()){
+            mesh.update(vb);
+            vblock.unlock();
+        }
+    }
+    inline void quit(){
+        run = false;
+        thread_mtex.unlock();
+        vb_mtex.unlock();
+        cvar.notify_all();
+        m_thread.join();
+    }
+};
 
 
 float frameBegin(unsigned& i, float& t){
@@ -90,10 +149,9 @@ int main(int argc, char* argv[]){
     bool box = false;
     bool edit = false;
     float spu = 7.0f;
-    bool remeshed = false;
-    std::vector<CSG*> workQueue[2];
-    thread* worker = nullptr;
-    int wqid = 0;
+    
+    Worker worker(&root, spu);
+    
     while(window.open()){
         input.poll(frameBegin(i, t), camera);
     	waitcounter--;
@@ -115,9 +173,7 @@ int main(int argc, char* argv[]){
 		else if(glfwGetKey(window.getWindow(), GLFW_KEY_4)){spu *= 0.99f;}
 		
 		if(brush_changed){
-			size_t sz = (vb.size()) ? (vb.size() >> 1) : 512;
 			vb.clear();
-			vb.reserve(sz);
 			if(box)
 				fillCells(vb, CSG(vec3(0.0f), vec3(bsize), &BOXADD, bsize, 1), spu);
 			else
@@ -135,34 +191,18 @@ int main(int argc, char* argv[]){
 		if(input.leftMouseDown() && waitcounter < 0){
 			SDF_Base* type = &SPHERESADD;
 			if(box) type = &BOXSADD;
-			workQueue[wqid].push_back(new CSG(at, vec3(bsize), type, bsize, 1));
-			waitcounter = (int)(bsize * 30.0f);
-			edit = true;
-			print(at);
+			worker.insert(new CSG(at, vec3(bsize), type, bsize, 1), spu);
+			waitcounter = (int)(bsize * 20.0f);
 		}
 		else if(input.rightMouseDown() && waitcounter < 0){
 			SDF_Base* type = &SPHERESUB;
 			if(box) type = &BOXSUB;
-			workQueue[wqid].push_back(new CSG(at, vec3(bsize), type, bsize, 1)); 
-			waitcounter = (int)(bsize * 30.0f);
-			edit = true;
-			print(at);
+			worker.insert(new CSG(at, vec3(bsize), type, bsize, 1), spu); 
+			waitcounter = (int)(bsize * 20.0f);
 		}
-		
-		if(edit && !worker){
-			worker = new thread(&remesh, &root, &workQueue[wqid], &(root.vb), &remeshed, spu);
-			wqid = (wqid+1)%2;
-			edit = false;
-		}
-		
-		if(remeshed){
-			worker->join();
-			delete worker;
-			worker = nullptr;
-			rootMesh.update(root.vb);
-			remeshed = false;
-		}
-		
+        
+        worker.pull(rootMesh);
+        
 		//timer.begin();
 		
 		rootMesh.draw();
@@ -170,8 +210,9 @@ int main(int argc, char* argv[]){
 		//timer.endPrint();
         window.swap();
     }
-    if(worker)worker->join();
-    delete worker;
+    
+    worker.quit();
+    
     rootMesh.destroy();
     brushMesh.destroy();
     return 0;
