@@ -77,6 +77,7 @@ public:
         unique_lock<mutex> vblock(vb_mtex, defer_lock);
         if(vblock.try_lock()){
             mesh.update(vb);
+            vb.clear();
             vblock.unlock();
         }
     }
