@@ -30,16 +30,16 @@ class Worker{
     condition_variable cvar;
     VertexBuffer vb;
     OctNode* root;
-    atomic<unsigned short> head, tail;
+    atomic<unsigned char> head, tail;
     float spu;
     bool run;
     inline bool empty(){ 
         return head.load(memory_order_relaxed) == tail.load(memory_order_relaxed); 
     }
-    inline unsigned short next(atomic<unsigned short>& counter){
+    inline unsigned char next(atomic<unsigned char>& counter){
         return (counter.load(memory_order_relaxed) + 1) & 127;
     }
-    inline unsigned short current(atomic<unsigned short>& counter){
+    inline unsigned char current(atomic<unsigned char>& counter){
         return counter.load(memory_order_relaxed);
     }
     void kernel(){
