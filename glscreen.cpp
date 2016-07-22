@@ -19,13 +19,13 @@ GLScreen::GLScreen(){
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-	MYGLERRORMACRO
+    MYGLERRORMACRO
 }
 
 GLScreen::~GLScreen(){
-	glDeleteBuffers(1, &vbo);
-	glDeleteVertexArrays(1, &vao);
-	MYGLERRORMACRO
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
+    MYGLERRORMACRO
 }
 
 void GLScreen::draw(){

@@ -34,7 +34,7 @@ void Input::poll(float dt, Camera& cam){
     v.x += glfwGetKey(m_glwindow, GLFW_KEY_D) ? dt : 0.0f;
     v.y += glfwGetKey(m_glwindow, GLFW_KEY_SPACE) ? dt : 0.0f;
     v.y -= glfwGetKey(m_glwindow, GLFW_KEY_LEFT_SHIFT) ? dt : 0.0f;
-	cam.move(v);
+    cam.move(v);
     cam.yaw(m_relCursorX * dt);
     cam.pitch(m_relCursorY * dt);
     m_relCursorX = 0.0f;
@@ -55,7 +55,7 @@ float Input::scrollOffset(){
 }
 
 float Input::relScroll(){
-	return Input::m_relScroll;
+    return Input::m_relScroll;
 }
 
 float Input::cursorX(){
@@ -91,7 +91,7 @@ void Input::mouse_button_callback(GLFWwindow* window, int button, int action, in
 
 void Input::cursor_position_callback(GLFWwindow* window, double xpos, double ypos){
     m_relCursorX = m_cursorX - (float)xpos;
-	m_relCursorY = m_cursorY - (float)ypos;
+    m_relCursorY = m_cursorY - (float)ypos;
     m_cursorX = (float) xpos;
     m_cursorY = (float) ypos;
 }

@@ -2,11 +2,11 @@
 #define UBO_H
 
 class UBO{
-	unsigned id;
+    unsigned id;
 public:
-	UBO(void* ptr, size_t size, unsigned binding);
-	~UBO();
-	void upload(void* ptr, size_t size);
+    UBO(void* ptr, size_t size, unsigned binding);
+    ~UBO();
+    void upload(void* ptr, size_t size);
 };
 
 #endif

@@ -5,15 +5,15 @@ class Camera;
 struct GLFWwindow;
 
 class Input{
-	GLFWwindow* m_glwindow;
+    GLFWwindow* m_glwindow;
 
-	static bool m_rightMouseDown, m_leftMouseDown;
-	static float m_scrollOffset, m_relScroll, m_cursorX, m_cursorY, m_relCursorX, m_relCursorY;
+    static bool m_rightMouseDown, m_leftMouseDown;
+    static float m_scrollOffset, m_relScroll, m_cursorX, m_cursorY, m_relCursorX, m_relCursorY;
 
-	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-	static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-	static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
+    static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+    static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+    static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 
 public:
     Input(GLFWwindow* window);

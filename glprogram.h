@@ -6,11 +6,11 @@
 #include "glm/glm.hpp"
 
 class GLProgram{
-	std::unordered_map<std::string, unsigned> uniforms;
+    std::unordered_map<std::string, unsigned> uniforms;
     unsigned progHandle;
     int getUniformLocation(const std::string& name);
 public:
-	GLProgram(const char* vert_path, const char* frag_path);
+    GLProgram(const char* vert_path, const char* frag_path);
     ~GLProgram();
     void setUniform(const std::string& name, const glm::vec2& v);
     void setUniform(const std::string& name, const glm::vec3& v);

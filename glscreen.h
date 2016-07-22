@@ -2,11 +2,11 @@
 #define GLSCREEN_H
 
 class GLScreen{
-	unsigned vao, vbo;
+    unsigned vao, vbo;
 public:
-	GLScreen();
-	~GLScreen();
-	void draw();
+    GLScreen();
+    ~GLScreen();
+    void draw();
 };
 
 #endif

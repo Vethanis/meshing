@@ -25,11 +25,11 @@ GLProgram::GLProgram(const char* vert_path, const char* frag_path){
 
     glGetProgramiv(progHandle, GL_LINK_STATUS, &result);
     if(!result){
-		glGetProgramiv(progHandle, GL_INFO_LOG_LENGTH, &infoLogLength);
-		std::vector<char> ProgramErrorMessage( std::max(infoLogLength, int(1)) );
-		glGetProgramInfoLog(progHandle, infoLogLength, NULL, &ProgramErrorMessage[0]);
-		fprintf(stdout, "%s\n", &ProgramErrorMessage[0]);
-	}
+        glGetProgramiv(progHandle, GL_INFO_LOG_LENGTH, &infoLogLength);
+        std::vector<char> ProgramErrorMessage( std::max(infoLogLength, int(1)) );
+        glGetProgramInfoLog(progHandle, infoLogLength, NULL, &ProgramErrorMessage[0]);
+        fprintf(stdout, "%s\n", &ProgramErrorMessage[0]);
+    }
     MYGLERRORMACRO
 }
 
@@ -44,55 +44,55 @@ void GLProgram::bind(){
 }
 
 int GLProgram::getUniformLocation(const std::string& name){
-	auto iter = uniforms.find(name);
-	if(iter == end(uniforms)){
-		const int v = glGetUniformLocation(progHandle, name.c_str());
-		uniforms[name] = v;
-		return v;
-	}
-	return iter->second;
+    auto iter = uniforms.find(name);
+    if(iter == end(uniforms)){
+        const int v = glGetUniformLocation(progHandle, name.c_str());
+        uniforms[name] = v;
+        return v;
+    }
+    return iter->second;
 }
 
 void GLProgram::setUniform(const std::string& name, const glm::vec2& v){
-	const int location = getUniformLocation(name);
-	if (location == -1)
-		return;
-	glUniform2fv(location, 1, glm::value_ptr(v));
+    const int location = getUniformLocation(name);
+    if (location == -1)
+        return;
+    glUniform2fv(location, 1, glm::value_ptr(v));
 }
 void GLProgram::setUniform(const std::string& name, const glm::vec3& v){
-	const int location = getUniformLocation(name);
-	if (location == -1)
-		return;
-	glUniform3fv(location, 1, glm::value_ptr(v));
+    const int location = getUniformLocation(name);
+    if (location == -1)
+        return;
+    glUniform3fv(location, 1, glm::value_ptr(v));
 }
 void GLProgram::setUniform(const std::string& name, const glm::vec4& v){
-	const int location = getUniformLocation(name);
-	if (location == -1)
-		return;
-	glUniform4fv(location, 1, glm::value_ptr(v));
+    const int location = getUniformLocation(name);
+    if (location == -1)
+        return;
+    glUniform4fv(location, 1, glm::value_ptr(v));
 }
 void GLProgram::setUniform(const std::string& name, const glm::mat3& v){
-	const int location = getUniformLocation(name);
-	if (location == -1)
-		return;
-	glUniformMatrix3fv(location, 1, false, glm::value_ptr(v));
+    const int location = getUniformLocation(name);
+    if (location == -1)
+        return;
+    glUniformMatrix3fv(location, 1, false, glm::value_ptr(v));
 }
 void GLProgram::setUniform(const std::string& name, const glm::mat4& v){
-	const int location = getUniformLocation(name);
-	if (location == -1)
-		return;
-	glUniformMatrix4fv(location, 1, false, glm::value_ptr(v));
+    const int location = getUniformLocation(name);
+    if (location == -1)
+        return;
+    glUniformMatrix4fv(location, 1, false, glm::value_ptr(v));
 }
 void GLProgram::setUniformInt(const std::string& name, const int v){
-	const int location = getUniformLocation(name);
-	if (location == -1)
-		return;
-	glUniform1i(location, v);
+    const int location = getUniformLocation(name);
+    if (location == -1)
+        return;
+    glUniform1i(location, v);
 }
 void GLProgram::setUniformFloat(const std::string& name, const float v){
-	const int location = getUniformLocation(name);
-	if (location == -1)
-		return;
-	glUniform1f(location, v);
+    const int location = getUniformLocation(name);
+    if (location == -1)
+        return;
+    glUniform1f(location, v);
 }
 

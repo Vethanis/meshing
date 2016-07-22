@@ -23,12 +23,12 @@ Window::Window(int width, int height, int major_ver, int minor_ver, const string
     }
     glfwMakeContextCurrent(window);
     glewExperimental=true;
-	glViewport(0, 0, width, height);
+    glViewport(0, 0, width, height);
     if(glewInit() != GLEW_OK){
         cerr << "Failed to initialize GLEW" << endl;
         exit(1);
     }
-    glGetError();	// invalid enumerant shows up here, just part of glew being itself.
+    glGetError();    // invalid enumerant shows up here, just part of glew being itself.
     glfwSwapInterval(1);
 }
 
@@ -38,11 +38,11 @@ Window::~Window(){
 }
 
 bool Window::open(){
-	return !glfwWindowShouldClose(window);
+    return !glfwWindowShouldClose(window);
 }
 void Window::swap(){
-	glfwSwapBuffers(window);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glfwSwapBuffers(window);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void Window::error_callback(int error, const char* description){
