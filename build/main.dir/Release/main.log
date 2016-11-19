@@ -1,0 +1,5 @@
+﻿  main.cpp
+c:\users\lauren\workspace\meshing\src\csg.h(144): warning C4311: '<function-style-cast>': pointer truncation from 'CSG *' to 'int'
+c:\users\lauren\workspace\meshing\src\csg.h(144): warning C4302: '<function-style-cast>': truncation from 'CSG *' to 'int'
+C:\Users\Lauren\workspace\meshing\src\main.cpp(107): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  main.vcxproj -> C:\Users\Lauren\workspace\meshing\bin\Release\main.exe

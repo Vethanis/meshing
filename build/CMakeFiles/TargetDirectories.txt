@@ -1,0 +1,3 @@
+C:/Users/Lauren/workspace/meshing/build/CMakeFiles/main.dir
+C:/Users/Lauren/workspace/meshing/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/Lauren/workspace/meshing/build/CMakeFiles/ZERO_CHECK.dir
