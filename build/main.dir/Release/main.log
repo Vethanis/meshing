@@ -1,5 +1,19 @@
-﻿  main.cpp
+﻿  Building Custom Rule C:/Users/Lauren/workspace/meshing/CMakeLists.txt
+  CMake does not need to re-run because C:\Users\Lauren\workspace\meshing\build\CMakeFiles\generate.stamp is up-to-date.
+  SSBO.cpp
+  UBO.cpp
+  compute_shader.cpp
+  glprogram.cpp
+  glscreen.cpp
+  input.cpp
+  main.cpp
 c:\users\lauren\workspace\meshing\src\csg.h(144): warning C4311: '<function-style-cast>': pointer truncation from 'CSG *' to 'int'
 c:\users\lauren\workspace\meshing\src\csg.h(144): warning C4302: '<function-style-cast>': truncation from 'CSG *' to 'int'
 C:\Users\Lauren\workspace\meshing\src\main.cpp(107): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  mesh.cpp
+  shader.cpp
+  texture.cpp
+  timer.cpp
+  window.cpp
+  Generating Code...
   main.vcxproj -> C:\Users\Lauren\workspace\meshing\bin\Release\main.exe

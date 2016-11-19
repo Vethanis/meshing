@@ -99,7 +99,7 @@ struct OctNode{
     }
     // always pass an item on the heap here
     inline void insert(CSG* item){
-        if(item->func(center) > qlen()){
+        if(fabsf(item->func(center)) > qlen()){
             if(!depth)
                 delete item;
             return;
