@@ -10,7 +10,7 @@ layout(std140, binding = 0) uniform UniBlock		\n\
 	mat4 MVP;		\n\
 	vec4 eye;		\n\
 	vec4 light_pos;		\n\
-    ivec4 seed;     \n\
+        ivec4 seed;     \n\
 };		\n\
 out vec4 out_color;    \n\
 float randUni(inout uint f){    \n\

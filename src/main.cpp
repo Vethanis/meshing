@@ -122,6 +122,7 @@ int main(int argc, char* argv[]){
     Window window(WIDTH, HEIGHT, 4, 3, "Meshing");
     Input input(window.getWindow());
     GLProgram colorProg(VERTSRC, FRAGSRC);
+    colorProg.bind();
 
     oct::OctNode root(glm::vec3(0.0f), 0);
     Mesh brushMesh;
@@ -138,7 +139,7 @@ int main(int argc, char* argv[]){
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_PROGRAM_POINT_SIZE);
 
-    float bsize = 0.1f;
+    float bsize = 0.05f;
 
     input.poll();
     unsigned i = 0;
@@ -156,9 +157,7 @@ int main(int argc, char* argv[]){
 
         glm::vec3 at = camera.getEye() + 3.0f * camera.getAxis();
 
-        mat4 brushMat = glm::translate(glm::mat4(), at);
-        mat4 VP = camera.getVP();
-        uni.MVP = VP * brushMat;
+        uni.MVP = camera.getVP();
         uni.eye = vec4(camera.getEye(), 0.0f);
         uni.light_pos = vec4(camera.getEye(), 0.0f);
 		uni.seed.x = rand();
@@ -167,30 +166,24 @@ int main(int argc, char* argv[]){
         if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f; brush_changed = true;}
         else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f; brush_changed = true;}
 
-		if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { box = !box; brush_changed = true; waitcounter = 10; }
+	if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { box = !box; brush_changed = true; waitcounter = 10;}
 
-        if(brush_changed){
-			CSG item(vec3(0.0f), vec3(bsize), box ? BOXADD : SPHEREADD, 1);
-			fillCells(vb, item, at, bsize * 2.0f);
-            brushMesh.update(vb);
-            brush_changed = false;
-        }
-
-        colorProg.bind();
-        brushMesh.draw();
-
-        uni.MVP = VP;
-        unibuf.upload(&uni, sizeof(uni));
+        vb.clear();
+	CSG item(at, vec3(bsize), box ? BOXADD : SPHEREADD, 1);
+	fillCells(vb, item, at, bsize * 1.5f);
+        brushMesh.update(vb);
+        brush_changed = false;
 
         if(input.leftMouseDown() && waitcounter < 0){
             worker.insert(new CSG(at, vec3(bsize), box ? BOXADD : SPHEREADD, 1));
-            waitcounter = 3;
+            waitcounter = 2;
         }
         else if(input.rightMouseDown() && waitcounter < 0){
             worker.insert(new CSG(at, vec3(bsize), box ? BOXSUB : SPHERESUB, 1));
-            waitcounter = 3;
+            waitcounter = 2;
         }
 
+        brushMesh.draw();
         worker.pull();
 
         window.swap();

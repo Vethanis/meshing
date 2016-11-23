@@ -76,7 +76,7 @@ struct CSG{
     }
     float blend(float a, float b)const{
 		if(type == BOXSADD || type == SPHERESADD)
-			return blend_sadd(a, b, params.x);
+			return blend_sadd(a, b, params.x * 0.5f);
 		if(type == SPHEREADD || type == BOXADD)
 			return blend_add(a, b);
 		return blend_sub(a, b);
@@ -104,7 +104,7 @@ inline maphit map(const glm::vec3& p, CSGList& list, float rad){
     maphit hit = {nullptr, rad * 1.732051f};
     for(CSG* i : list){
         float dis = i->blend(hit.distance, i->func(p));
-        if(fabsf(dis) < fabsf(hit.distance)){
+        if(dis < hit.distance){
             hit.id = i;
             hit.distance = dis;
         }
@@ -128,7 +128,7 @@ inline glm::vec3 map_normal(const glm::vec3& p, CSGList& list){
     ));
 }
 
-static int fill_depth = 6;
+static int fill_depth = 5;
 
 inline void fillInd(VertexBuffer& vb, CSGList& list, CSGList& active_set, const glm::vec3& center, float radius, int depth){
 
@@ -136,12 +136,13 @@ inline void fillInd(VertexBuffer& vb, CSGList& list, CSGList& active_set, const 
         glm::vec3 N = map_normal(center, list);
         glm::vec3 p = center;
 
-        maphit mh;
-        for(char i = 0; i < 3; i++){
+        maphit mh = map(p, list, radius);
+        if(mh.distance < 0.0f)return;
+        for(char i = 0; i < 2; i++){
             mh = map(p, list, radius);
             p +=  N * mh.distance;
         }
-        vb.push_back({p, map_normal(center, list), int(mh.id)});
+        vb.push_back({p, N, int(mh.id)});
         active_set.insert(mh.id);
         return;
     }
@@ -160,8 +161,8 @@ inline void fillInd(VertexBuffer& vb, CSGList& list, CSGList& active_set, const 
 }
 
 inline void fillCells(VertexBuffer& vb, CSGList& list, const glm::vec3& center, float radius){
-	if (!list.size())return;
-	list.erase(nullptr);
+    if (!list.size())return;
+    list.erase(nullptr);
     vb.clear();
     CSGList active_set;
     fillInd(vb, list, active_set, center, radius, 0);
