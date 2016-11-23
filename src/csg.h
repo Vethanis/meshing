@@ -137,12 +137,9 @@ inline void fillInd(VertexBuffer& vb, CSGList& list, CSGList& active_set, const 
         glm::vec3 p = center;
 
         maphit mh = map(p, list, radius);
+        p +=  N * mh.distance;
         if(mh.distance < 0.0f)return;
-        for(char i = 0; i < 2; i++){
-            mh = map(p, list, radius);
-            p +=  N * mh.distance;
-        }
-        vb.push_back({p, N, int(mh.id)});
+        vb.push_back({p, N, int(size_t(mh.id) % INT_MAX)});
         active_set.insert(mh.id);
         return;
     }

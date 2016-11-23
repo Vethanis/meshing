@@ -21,10 +21,10 @@ vec3 hsv2rgb(vec3 c) {		\n\
 	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);		\n\
 }		\n\
 vec3 id_to_color() {		\n\
-	float hue = sin(float(id) * 0.1) * 3.141592;		\n\
-	float sat = 0.9;		\n\
-	float val = 0.9;		\n\
-	return hsv2rgb(vec3(hue, sat, val));		\n\
+	int r = id & 0xFFFF;		\n\
+	int g = (id >> 16) & 0xFFFF;	\n\
+	int b = (id >> 32) & 0xFFFF;	\n\
+	return vec3(float(r) / float(0xffff), float(g) / float(0xffff), float(b) / float(0xffff));	\n\
 }		\n\
 void main() {		\n\
 	gl_Position = MVP * vec4(position, 1);		\n\
@@ -41,7 +41,7 @@ void main() {		\n\
 	vec3 H = normalize(normalize(V) + L);		\n\
 	float S = (D > 0.0f) ? pow(max(0.0f, dot(H, normal)), 64.0f) : 0.0f;		\n\
 	float dist = max(1.0f, gl_Position.w * gl_Position.w);		\n\
-	fragColor = vec3(0.001f, 0.0005f, 0.0005f) + (D * color + S * color) / dist;		\n\
+	fragColor = vec3(0.0005f, 0.0005f, 0.0005f) + (D * color + S * color) / dist;		\n\
 	fragColor = pow(fragColor, vec3(1.0f / 2.2f));		\n\
 }		\n\
 ";

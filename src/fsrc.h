@@ -26,8 +26,7 @@ void main(){    \n\
         discard;    \n\
     uint s = uint(dot(gl_FragCoord.xy, gl_PointCoord.xy) * seed.x);    \n\
     vec2 coord = gl_PointCoord * 2.0 - 1.0;    \n\
-    float dis = length(coord);    \n\
-    if(dis > randUni(s)){    \n\
+    if(dot(coord, coord) > randUni(s)){    \n\
         discard;    \n\
     }    \n\
     out_color = vec4(fragColor, 1.0);    \n\

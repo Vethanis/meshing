@@ -104,7 +104,7 @@ float frameBegin(unsigned& i, float& t){
 }
 
 int main(int argc, char* argv[]){
-	srand(time(0));
+	srand(unsigned(time(0)));
 
     int WIDTH = 1280;
     int HEIGHT = 720;
