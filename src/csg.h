@@ -63,7 +63,7 @@ struct CSG{
     }
     inline float blend(float a, float b)const{
 		if(type & 4)
-			return blend_sadd(a, b, params.x * 0.5f);
+			return blend_sadd(a, b, glm::min(params.x * 0.5f, 0.2f));
 		if(type & 2)
 			return blend_sub(a, b);
 		return blend_add(a, b);
