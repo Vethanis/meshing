@@ -4,8 +4,6 @@
 #include "glm/glm.hpp"
 #include <cfloat>
 #include <vector>
-#include <algorithm>
-#include <set>
 #include "math.h"
 
 inline float sphere_func(const glm::vec3& p, float r){

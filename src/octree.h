@@ -3,7 +3,7 @@
 
 #include "csg.h"
 #include "stdlib.h"
-#include <set>
+#include <unordered_set>
 #include <mutex>
 #include "math.h"
 
@@ -15,7 +15,7 @@ struct OctNode;
 struct leafData;
 
 static std::vector<leafData*> ldata, n_upload;
-static std::set<leafData*> n_remesh;
+static std::unordered_set<leafData*> n_remesh;
 static std::mutex leaf_mtex, remesh_mtex, upload_mtex;
 static CSGList csg_ops;
 

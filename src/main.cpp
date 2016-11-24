@@ -166,13 +166,15 @@ int main(int argc, char* argv[]){
         if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f; brush_changed = true;}
         else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f; brush_changed = true;}
 
-	if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { box = !box; brush_changed = true; waitcounter = 10;}
+	    if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { box = !box; brush_changed = true; waitcounter = 10;}
 
-        vb.clear();
-	    CSG item(at, vec3(bsize), box ? BOXADD : SPHEREADD, i);
-        fillCells(vb, item, at, bsize * 1.5f);
-        brushMesh.update(vb);
-        brush_changed = false;
+        {
+            vb.clear();
+    	    CSG item(at, vec3(bsize), box ? BOXADD : SPHEREADD, i);
+            fillCells(vb, item, at, bsize);
+            brushMesh.update(vb);
+            brush_changed = false;
+        }
 
         if(input.leftMouseDown() && waitcounter < 0){
             worker.insert(new CSG(at, vec3(bsize), box ? BOXSADD : SPHERESADD, i));
