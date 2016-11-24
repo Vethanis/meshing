@@ -176,11 +176,11 @@ int main(int argc, char* argv[]){
 
         if(input.leftMouseDown() && waitcounter < 0){
             worker.insert(new CSG(at, vec3(bsize), box ? BOXSADD : SPHERESADD, i));
-            waitcounter = 2;
+            waitcounter = int(bsize * 10.0f);
         }
         else if(input.rightMouseDown() && waitcounter < 0){
             worker.insert(new CSG(at, vec3(bsize), box ? BOXSUB : SPHERESUB, i));
-            waitcounter = 2;
+            waitcounter = int(bsize * 10.0f);;
         }
 
         brushMesh.draw();

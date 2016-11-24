@@ -17,7 +17,7 @@ smooth out vec3 fragColor;		\n\
 flat out int valid;    \n\
 void main() {		\n\
 	gl_Position = MVP * vec4(position, 1);		\n\
-	gl_PointSize = clamp(50.0f / gl_Position.w, 1.0f, 100.0f);		\n\
+	gl_PointSize = clamp(35.0f / gl_Position.w, 1.0f, 500.0f);		\n\
         vec3 V = eye.xyz - position;		\n\
         if(dot(V, normal) <= 0.0){		\n\
             valid = 0;		\n\

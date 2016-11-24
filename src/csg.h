@@ -112,15 +112,13 @@ inline glm::vec3 map_normal(const glm::vec3& p, CSGList& list){
 static int fill_depth = 5;
 
 inline void fillInd(VertexBuffer& vb, CSGList& list, const glm::vec3& center, float radius, int depth){
+    maphit mh = map(center, list);
+    if(!mh.id || fabsf(mh.distance) > radius * 1.732051f)
+        return;
 
     if(depth == fill_depth){
         glm::vec3 N = map_normal(center, list);
-        glm::vec3 p = center;
-
-        maphit mh = map(p, list);
-        if(!mh.id || mh.distance < 0.0f)return;
-        p +=  N * mh.distance;
-        vb.push_back({p, N, mh.id->material});
+        vb.push_back({center - N * mh.distance, N, mh.id->material});
         return;
     }
 
@@ -130,10 +128,7 @@ inline void fillInd(VertexBuffer& vb, CSGList& list, const glm::vec3& center, fl
         c.x += (i & 4) ? hr : -hr;
         c.y += (i & 2) ? hr : -hr;
         c.z += (i & 1) ? hr : -hr;
-        maphit mh = map(c, list);
-        if(mh.id && fabsf(mh.distance) < hr * 1.732051f){
-            fillInd(vb, list, c, hr, depth + 1);
-        }
+        fillInd(vb, list, c, hr, depth + 1);
     }
 }
 
@@ -147,7 +142,7 @@ inline void fillCells(VertexBuffer& vb, CSG& item, const glm::vec3& center, floa
 	vb.clear();
 	CSGList list;
 	list.push_back(&item);
-	fillInd(vb, list, center, radius, -1);
+	fillInd(vb, list, center, radius, 0);
 }
 
 #endif
