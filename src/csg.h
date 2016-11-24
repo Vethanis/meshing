@@ -4,13 +4,9 @@
 #include "glm/glm.hpp"
 #include <cfloat>
 #include <vector>
+#include <algorithm>
 #include <set>
 #include "math.h"
-
-inline float smin(float a, float b, float k){
-    float h = glm::clamp( 0.5f+0.5f*(b-a)/k, 0.0f, 1.0f );
-    return glm::mix( b, a, h ) - k*h*(1.0f-h);
-}
 
 inline float sphere_func(const glm::vec3& p, float r){
     return glm::length(p) - r;
@@ -36,19 +32,24 @@ inline float blend_add(float a, float b){
     return glm::min(a, b);
 }
 inline float blend_sub(float a, float b){
-    return glm::max(a, -b);
+    return glm::max(-b, a);
 }
 inline float blend_sadd(float a, float b, float r){
-    return smin(a, b, r);
+    float e = glm::max(r - fabsf(a - b), 0.0f);
+	return glm::min(a, b) - e*e*0.25f/r;
 }
-
+// box: type & 1 == 0
+// sphere: type & 1 == 1
+// add: type & 2 == 0
+// sub: type & 2 == 2
+// sadd: type & 4 == 4
 enum CSG_Type{
-    SPHEREADD,
-    SPHERESADD,
-    SPHERESUB,
-    BOXADD,
-    BOXSADD,
-    BOXSUB
+    BOXADD = 0,
+    SPHEREADD = 1,
+    BOXSUB = 2,
+    SPHERESUB = 3,
+    BOXSADD = 4,
+    SPHERESADD = 5
 };
 
 struct CSG{
@@ -56,34 +57,22 @@ struct CSG{
     CSG_Type type;
     int material;
 	CSG(const glm::vec3& c, const glm::vec3& p, CSG_Type t, int m) : center(c), params(p), type(t), material(m) {};
-    float func(const glm::vec3& p)const{
-		if (type == SPHEREADD || type == SPHERESADD || type == SPHERESUB) {
+    inline float func(const glm::vec3& p)const{
+		if (type & 1) {
 			return sphere_func(p - center, params.x);
 		}
 		return box_func(p - center, params);
     }
-    glm::vec3 min()const{
-		if (type == SPHEREADD || type == SPHERESADD || type == SPHERESUB) {
-			return sphere_min(center, params.x);
-		}
-		return box_min(center, params);
-    }
-    glm::vec3 max()const{
-		if (type == SPHEREADD || type == SPHERESADD || type == SPHERESUB) {
-			return sphere_max(center, params.x);
-		}
-		return box_max(center, params);
-    }
-    float blend(float a, float b)const{
-		if(type == BOXSADD || type == SPHERESADD)
+    inline float blend(float a, float b)const{
+		if(type & 4)
 			return blend_sadd(a, b, params.x * 0.5f);
-		if(type == SPHEREADD || type == BOXADD)
-			return blend_add(a, b);
-		return blend_sub(a, b);
+		if(type & 2)
+			return blend_sub(a, b);
+		return blend_add(a, b);
     }
 };
 
-typedef std::set<CSG*> CSGList;
+typedef std::vector<CSG*> CSGList;
 
 struct maphit{
     CSG* id;
@@ -100,9 +89,9 @@ inline float operator-(const maphit& a, const float b){
     return a.distance - b;
 }
 
-inline maphit map(const glm::vec3& p, CSGList& list, float rad){
-    maphit hit = {nullptr, rad * 1.732051f};
-    for(CSG* i : list){
+inline maphit map(const glm::vec3& p, CSGList& list){
+    maphit hit = {nullptr, FLT_MAX};
+    for(auto* i : list){
         float dis = i->blend(hit.distance, i->func(p));
         if(dis < hit.distance){
             hit.id = i;
@@ -112,35 +101,26 @@ inline maphit map(const glm::vec3& p, CSGList& list, float rad){
     return hit;
 }
 
-inline float map_raw(const glm::vec3& p, CSGList& list) {
-	float dis = FLT_MAX;
-	for (auto* i : list) {
-		dis = glm::min(dis, fabsf(i->func(p)));
-	}
-	return dis;
-}
-
 inline glm::vec3 map_normal(const glm::vec3& p, CSGList& list){
     return glm::normalize(glm::vec3(
-        map_raw(p + glm::vec3(0.001f, 0.0f, 0.0f), list) - map_raw(p - glm::vec3(0.001f, 0.0f, 0.0f), list),
-		map_raw(p + glm::vec3(0.0f, 0.001f, 0.0f), list) - map_raw(p - glm::vec3(0.0f, 0.001f, 0.0f), list),
-		map_raw(p + glm::vec3(0.0f, 0.0f, 0.001f), list) - map_raw(p - glm::vec3(0.0f, 0.0f, 0.001f), list)
+        map(p + glm::vec3(0.001f, 0.0f, 0.0f), list) - map(p - glm::vec3(0.001f, 0.0f, 0.0f), list),
+		map(p + glm::vec3(0.0f, 0.001f, 0.0f), list) - map(p - glm::vec3(0.0f, 0.001f, 0.0f), list),
+		map(p + glm::vec3(0.0f, 0.0f, 0.001f), list) - map(p - glm::vec3(0.0f, 0.0f, 0.001f), list)
     ));
 }
 
 static int fill_depth = 5;
 
-inline void fillInd(VertexBuffer& vb, CSGList& list, CSGList& active_set, const glm::vec3& center, float radius, int depth){
+inline void fillInd(VertexBuffer& vb, CSGList& list, const glm::vec3& center, float radius, int depth){
 
     if(depth == fill_depth){
         glm::vec3 N = map_normal(center, list);
         glm::vec3 p = center;
 
-        maphit mh = map(p, list, radius);
+        maphit mh = map(p, list);
+        if(!mh.id || mh.distance < 0.0f)return;
         p +=  N * mh.distance;
-        if(mh.distance < 0.0f)return;
-        vb.push_back({p, N, int(size_t(mh.id) % INT_MAX)});
-        active_set.insert(mh.id);
+        vb.push_back({p, N, mh.id->material});
         return;
     }
 
@@ -150,27 +130,24 @@ inline void fillInd(VertexBuffer& vb, CSGList& list, CSGList& active_set, const 
         c.x += (i & 4) ? hr : -hr;
         c.y += (i & 2) ? hr : -hr;
         c.z += (i & 1) ? hr : -hr;
-        maphit mh = map(c, list, hr);
-        if(mh.id){
-            fillInd(vb, list, active_set, c, hr, depth + 1);
+        maphit mh = map(c, list);
+        if(mh.id && fabsf(mh.distance) < hr * 1.732051f){
+            fillInd(vb, list, c, hr, depth + 1);
         }
     }
 }
 
 inline void fillCells(VertexBuffer& vb, CSGList& list, const glm::vec3& center, float radius){
     if (!list.size())return;
-    list.erase(nullptr);
     vb.clear();
-    CSGList active_set;
-    fillInd(vb, list, active_set, center, radius, 0);
-    list.swap(active_set);
+    fillInd(vb, list, center, radius, 0);
 }
 
 inline void fillCells(VertexBuffer& vb, CSG& item, const glm::vec3& center, float radius) {
 	vb.clear();
-	CSGList list, active_set;
-	list.insert(&item);
-	fillInd(vb, list, active_set, center, radius, 0);
+	CSGList list;
+	list.push_back(&item);
+	fillInd(vb, list, center, radius, -1);
 }
 
 #endif

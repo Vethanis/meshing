@@ -15,20 +15,9 @@ layout(std140, binding = 0) uniform UniBlock		\n\
 };		\n\
 smooth out vec3 fragColor;		\n\
 flat out int valid;    \n\
-vec3 hsv2rgb(vec3 c) {		\n\
-	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);		\n\
-	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);		\n\
-	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);		\n\
-}		\n\
-vec3 id_to_color() {		\n\
-	int r = id & 0xFFFF;		\n\
-	int g = (id >> 16) & 0xFFFF;	\n\
-	int b = (id >> 32) & 0xFFFF;	\n\
-	return vec3(float(r) / float(0xffff), float(g) / float(0xffff), float(b) / float(0xffff));	\n\
-}		\n\
 void main() {		\n\
 	gl_Position = MVP * vec4(position, 1);		\n\
-	gl_PointSize = clamp(45.0f / gl_Position.w, 1.0f, 100.0f);		\n\
+	gl_PointSize = clamp(50.0f / gl_Position.w, 1.0f, 100.0f);		\n\
         vec3 V = eye.xyz - position;		\n\
         if(dot(V, normal) <= 0.0){		\n\
             valid = 0;		\n\
@@ -36,12 +25,11 @@ void main() {		\n\
         }		\n\
         valid = 1;		\n\
 	vec3 color = normal * 0.5f + 0.5f;		\n\
-	vec3 L = normalize(light_pos.xyz - position);		\n\
+	vec3 L = normalize(vec3(0.5f, 0.5f, 0.5f));		\n\
 	float D = max(0.0f, dot(L, normal));		\n\
 	vec3 H = normalize(normalize(V) + L);		\n\
 	float S = (D > 0.0f) ? pow(max(0.0f, dot(H, normal)), 64.0f) : 0.0f;		\n\
-	float dist = max(1.0f, gl_Position.w * gl_Position.w);		\n\
-	fragColor = vec3(0.0005f, 0.0005f, 0.0005f) + (D * color + S * color) / dist;		\n\
+	fragColor = vec3(0.01f, 0.01f, 0.01f) + (D * color + S * color);		\n\
 	fragColor = pow(fragColor, vec3(1.0f / 2.2f));		\n\
 }		\n\
 ";

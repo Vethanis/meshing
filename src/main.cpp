@@ -169,17 +169,17 @@ int main(int argc, char* argv[]){
 	if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { box = !box; brush_changed = true; waitcounter = 10;}
 
         vb.clear();
-	CSG item(at, vec3(bsize), box ? BOXADD : SPHEREADD, 1);
-	fillCells(vb, item, at, bsize * 1.5f);
+	    CSG item(at, vec3(bsize), box ? BOXADD : SPHEREADD, i);
+        fillCells(vb, item, at, bsize * 1.5f);
         brushMesh.update(vb);
         brush_changed = false;
 
         if(input.leftMouseDown() && waitcounter < 0){
-            worker.insert(new CSG(at, vec3(bsize), box ? BOXADD : SPHEREADD, 1));
+            worker.insert(new CSG(at, vec3(bsize), box ? BOXSADD : SPHERESADD, i));
             waitcounter = 2;
         }
         else if(input.rightMouseDown() && waitcounter < 0){
-            worker.insert(new CSG(at, vec3(bsize), box ? BOXSUB : SPHERESUB, 1));
+            worker.insert(new CSG(at, vec3(bsize), box ? BOXSUB : SPHERESUB, i));
             waitcounter = 2;
         }
 

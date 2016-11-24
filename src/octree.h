@@ -14,13 +14,14 @@ namespace oct{
 struct OctNode;
 struct leafData;
 
-static std::set<leafData*> ldata, n_remesh, n_upload;
+static std::vector<leafData*> ldata, n_upload;
+static std::set<leafData*> n_remesh;
 static std::mutex leaf_mtex, remesh_mtex, upload_mtex;
-static std::set<CSG*> csg_ops;
+static CSGList csg_ops;
 
 struct leafData{
     VertexBuffer vb;
-    std::set<CSG*> items;
+    CSGList items;
     Mesh mesh;
     glm::vec3 center;
     float length;
@@ -59,7 +60,7 @@ struct OctNode{
             data->center = this->center;
             data->length = len;
             std::lock_guard<std::mutex> guard(leaf_mtex);
-            ldata.insert(data);
+            ldata.push_back(data);
         }
     }
     ~OctNode(){
@@ -86,7 +87,6 @@ struct OctNode{
     inline bool isLeaf(){return !children;}
     inline void makeChildren(){
         if(children)return;
-        if(depth + 1 > LEAF_DEPTH)return;
         const float nlen = length() * 0.5f;
         children = (OctNode*)malloc(sizeof(OctNode) * 8);
         for(char i = 0; i < 8; i++){
@@ -99,23 +99,22 @@ struct OctNode{
     }
     // always pass an item on the heap here
     inline void insert(CSG* item){
-        if(fabsf(item->func(center)) > qlen()){
+        if(item->func(center) >= qlen()){
             if(!depth)
                 delete item;
             return;
         }
         if(!depth)
-            csg_ops.insert(item);
-        makeChildren();
-        if(children){
-            for(char i = 0; i < 8; i++)
-                children[i].insert(item);
-        }
-        else if(data){
-            data->items.insert(item);
+            csg_ops.push_back(item);
+        if(data){
+            data->items.push_back(item);
             std::lock_guard<std::mutex> guard(remesh_mtex);
             n_remesh.insert(data);
+            return;
         }
+        makeChildren();
+        for(char i = 0; i < 8; i++)
+            children[i].insert(item);
     }
 
 };
@@ -128,7 +127,7 @@ void remesh_nodes(){
             o->remesh();
         }
 		std::lock_guard<std::mutex> guard(upload_mtex);
-		n_upload.insert(n_remesh.begin(), n_remesh.end());
+		n_upload.insert(n_upload.end(), n_remesh.begin(), n_remesh.end());
         n_remesh.clear();
         remesh_mtex.unlock();
     }
