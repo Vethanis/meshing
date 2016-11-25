@@ -1,39 +1,45 @@
-#include "glprogram.h"
-#include "shader.h"
 #include "myglheaders.h"
+
+#include "glprogram.h"
+
+#include "shader.h"
+#include "loadfile.h"
 #include "debugmacro.h"
-#include <vector>
-#include <algorithm>
 #include "glm/gtc/type_ptr.hpp"
+#include "stdio.h"
 
 using namespace std;
 
-GLProgram::GLProgram(const char* vsrc, const char* fsrc){
-    Shader vertShader(vsrc, GL_VERTEX_SHADER);
-    Shader fragShader(fsrc, GL_FRAGMENT_SHADER);
-    
+GLProgram::GLProgram(){
     progHandle = glCreateProgram();
-    glAttachShader(progHandle, vertShader.getHandle());
-    glAttachShader(progHandle, fragShader.getHandle());
-
-    glLinkProgram(progHandle);
-
-    GLint result;
-    int infoLogLength;
-
-    glGetProgramiv(progHandle, GL_LINK_STATUS, &result);
-    if(!result){
-        glGetProgramiv(progHandle, GL_INFO_LOG_LENGTH, &infoLogLength);
-        std::vector<char> ProgramErrorMessage( std::max(infoLogLength, int(1)) );
-        glGetProgramInfoLog(progHandle, infoLogLength, NULL, &ProgramErrorMessage[0]);
-        fprintf(stdout, "%s\n", &ProgramErrorMessage[0]);
-    }
-    MYGLERRORMACRO
 }
 
 GLProgram::~GLProgram(){
     glDeleteProgram(progHandle);
     MYGLERRORMACRO
+}
+
+void GLProgram::addShader(const char* path, int type){
+    char* src = load_file(path);
+    unsigned handle = createShader(src, type);
+    glAttachShader(progHandle, handle);
+    delete[] src;
+}
+
+void GLProgram::link(){
+    glLinkProgram(progHandle);
+
+    int result = 0;
+    glGetProgramiv(progHandle, GL_LINK_STATUS, &result);
+    if(!result){
+        int loglen = 0;
+        glGetProgramiv(progHandle, GL_INFO_LOG_LENGTH, &loglen);
+        char* log = new char[loglen + 1];
+        glGetProgramInfoLog(progHandle, loglen, NULL, log);
+        log[loglen] = 0;
+        puts(log);
+        delete[] log;
+    }
 }
 
 void GLProgram::bind(){
@@ -93,4 +99,3 @@ void GLProgram::setUniformFloat(const std::string& name, const float v){
         return;
     glUniform1f(location, v);
 }
-

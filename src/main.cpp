@@ -13,8 +13,6 @@
 #include <condition_variable>
 #include <atomic>
 
-#include "vsrc.h"
-#include "fsrc.h"
 #include "time.h"
 #include <random>
 
@@ -121,7 +119,10 @@ int main(int argc, char* argv[]){
 
     Window window(WIDTH, HEIGHT, 4, 3, "Meshing");
     Input input(window.getWindow());
-    GLProgram colorProg(VERTSRC, FRAGSRC);
+    GLProgram colorProg;
+    colorProg.addShader("vert.glsl", GL_VERTEX_SHADER);
+    colorProg.addShader("frag.glsl", GL_FRAGMENT_SHADER);
+    colorProg.link();
     colorProg.bind();
 
     oct::OctNode root(glm::vec3(0.0f), 0);

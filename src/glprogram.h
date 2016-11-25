@@ -10,8 +10,11 @@ class GLProgram{
     unsigned progHandle;
     int getUniformLocation(const std::string& name);
 public:
-    GLProgram(const char* vsrc, const char* fsrc);
+    GLProgram();
     ~GLProgram();
+    void addShader(const char* path, int type);
+    void link();
+    void bind();
     void setUniform(const std::string& name, const glm::vec2& v);
     void setUniform(const std::string& name, const glm::vec3& v);
     void setUniform(const std::string& name, const glm::vec4& v);
@@ -19,6 +22,5 @@ public:
     void setUniform(const std::string& name, const glm::mat4& v);
     void setUniformInt(const std::string& name, const int v);
     void setUniformFloat(const std::string& name, const float v);
-    void bind();
 };
 #endif
