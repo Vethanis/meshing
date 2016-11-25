@@ -21,7 +21,7 @@ if(WIN32)
     set(CMAKE_CXX_FLAGS "/EHsc /W3 /MT")
     include_directories(${CMAKE_SOURCE_DIR}/include)
     link_directories(${CMAKE_SOURCE_DIR}/lib "C:/Program Files (x86)/Microsoft SDKs/Windows/v7.1A/Lib/x64")
-    set(PROJECT_LINK_LIBS glfw3dll glew32 OpenGL32)
+    set(PROJECT_LINK_LIBS glfw3dll glew32 OpenGL32 openvr_api)
     file(GLOB DLL_FILES "lib/*.dll")
     file(COPY ${DLL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Release NO_SOURCE_PERMISSIONS)
     file(COPY ${DLL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Debug NO_SOURCE_PERMISSIONS)
@@ -33,6 +33,12 @@ elseif(UNIX)
     link_directories("/usr/lib")
     set(PROJECT_LINK_LIBS GLEW GL glfw)
 endif()
+
+
+# copy all shader files
+file(GLOB GLSL_FILES "src/*.glsl")
+file(COPY ${GLSL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Release NO_SOURCE_PERMISSIONS)
+file(COPY ${GLSL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Debug NO_SOURCE_PERMISSIONS)
 
 
 # wildcard add source files like so:
