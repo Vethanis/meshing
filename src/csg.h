@@ -6,35 +6,43 @@
 #include <vector>
 #include "math.h"
 
+struct CSG;
+
+struct maphit{
+    CSG* id;
+    float distance;
+};
+
+inline float operator-(const maphit& a, const maphit& b){
+    return a.distance - b.distance;
+}
+inline float operator-(const float a, const maphit& b){
+    return a - b.distance;
+}
+inline float operator-(const maphit& a, const float b){
+    return a.distance - b;
+}
+
 inline float sphere_func(const glm::vec3& p, float r){
     return glm::length(p) - r;
 }
 inline float box_func(const glm::vec3& p, const glm::vec3& b){
-    glm::vec3 d = abs(p) - b;
-    return glm::min(glm::max(d.x, glm::max(d.y, d.z)), 0.0f) + glm::length(glm::max(d, 0.0f));
+    glm::vec3 d = glm::abs(p) - b;
+    return glm::min(glm::max(d.x, glm::max(d.y, d.z)), 0.0f) + glm::length(glm::max(d, glm::vec3(0.0f)));
 }
-
-inline glm::vec3 sphere_min(const glm::vec3& c, float r){
-    return c - r;
+inline maphit blend_add(maphit a, maphit b){
+    return (a.distance < b.distance) ? a : b;
 }
-inline glm::vec3 sphere_max(const glm::vec3& c, float r){
-    return c + r;
+inline maphit blend_sub(maphit a, maphit b){
+    b.distance = -b.distance;
+    return (a.distance > b.distance) ? a : b;
 }
-inline glm::vec3 box_min(const glm::vec3& c, const glm::vec3& p){
-    return c - p;
-}
-inline glm::vec3 box_max(const glm::vec3& c, const glm::vec3& p){
-    return c + p;
-}
-inline float blend_add(float a, float b){
-    return glm::min(a, b);
-}
-inline float blend_sub(float a, float b){
-    return glm::max(-b, a);
-}
-inline float blend_sadd(float a, float b, float r){
-    float e = glm::max(r - fabsf(a - b), 0.0f);
-	return glm::min(a, b) - e*e*0.25f/r;
+inline maphit blend_sadd(maphit a, maphit b, float r){
+    float e = glm::max(r - fabsf(a.distance - b.distance), 0.0f);
+	float dis = glm::min(a.distance, b.distance) - e*e*0.25f/r;
+    if(fabsf(dis - a) < fabsf(dis - b))
+        return {a.id, dis};
+    return {b.id, dis};
 }
 // box: type & 1 == 0
 // sphere: type & 1 == 1
@@ -55,13 +63,13 @@ struct CSG{
     CSG_Type type;
     int material;
 	CSG(const glm::vec3& c, const glm::vec3& p, CSG_Type t, int m) : center(c), params(p), type(t), material(m) {};
-    inline float func(const glm::vec3& p)const{
+    inline float func(const glm::vec3& p){
 		if (type & 1) {
 			return sphere_func(p - center, params.x);
 		}
 		return box_func(p - center, params);
     }
-    inline float blend(float a, float b)const{
+    inline maphit blend(maphit a, maphit b){
 		if(type & 4)
 			return blend_sadd(a, b, glm::min(params.x * 0.5f, 0.2f));
 		if(type & 2)
@@ -72,29 +80,10 @@ struct CSG{
 
 typedef std::vector<CSG*> CSGList;
 
-struct maphit{
-    CSG* id;
-    float distance;
-};
-
-inline float operator-(const maphit& a, const maphit& b){
-    return a.distance - b.distance;
-}
-inline float operator-(const float a, const maphit& b){
-    return a - b.distance;
-}
-inline float operator-(const maphit& a, const float b){
-    return a.distance - b;
-}
-
 inline maphit map(const glm::vec3& p, CSGList& list){
     maphit hit = {nullptr, FLT_MAX};
     for(auto* i : list){
-        float dis = i->blend(hit.distance, i->func(p));
-        if(dis < hit.distance){
-            hit.id = i;
-            hit.distance = dis;
-        }
+        hit = i->blend(hit, {i, i->func(p)});
     }
     return hit;
 }

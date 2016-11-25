@@ -132,7 +132,7 @@ int main(int argc, char* argv[]){
     Timer timer;
 
     Uniforms uni;
-    uni.light_pos = vec4(5.0f, 5.0f, 5.0f, 0.0f);
+    uni.light_pos = vec4(-1.0f * camera.getAxis(), 0.0f);
 	uni.seed.x = rand();
     UBO unibuf(&uni, sizeof(uni), 0);
 
@@ -159,7 +159,8 @@ int main(int argc, char* argv[]){
 
         uni.MVP = camera.getVP();
         uni.eye = vec4(camera.getEye(), 0.0f);
-        uni.light_pos = vec4(camera.getEye(), 0.0f);
+        if(glfwGetKey(window.getWindow(), GLFW_KEY_E))
+            uni.light_pos = vec4(-1.0f * camera.getAxis(), 0.0f);
 		uni.seed.x = rand();
         unibuf.upload(&uni, sizeof(uni));
 
