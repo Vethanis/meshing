@@ -172,18 +172,18 @@ int main(int argc, char* argv[]){
 
         {
             vb.clear();
-    	    CSG item(at, vec3(bsize), box ? BOXADD : SPHEREADD, i);
+    	    CSG item(at, vec3(bsize), box ? BOXADD : SPHEREADD, i + 1);
             fillCells(vb, item, at, bsize);
             brushMesh.update(vb);
             brush_changed = false;
         }
 
         if(input.leftMouseDown() && waitcounter < 0){
-            worker.insert(new CSG(at, vec3(bsize), box ? BOXSADD : SPHERESADD, i));
+            worker.insert(new CSG(at, vec3(bsize), box ? BOXSADD : SPHERESADD, i + 1));
             waitcounter = int(bsize * 10.0f);
         }
         else if(input.rightMouseDown() && waitcounter < 0){
-            worker.insert(new CSG(at, vec3(bsize), box ? BOXSSUB : SPHERESSUB, i));
+            worker.insert(new CSG(at, vec3(bsize), box ? BOXSSUB : SPHERESSUB, i + 1));
             waitcounter = int(bsize * 10.0f);;
         }
 

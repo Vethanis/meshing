@@ -9,17 +9,17 @@
 struct CSG;
 
 struct maphit{
-    CSG* id;
     float distance;
+    int id;
 };
 
-inline float operator-(const maphit& a, const maphit& b){
+inline float operator-(const maphit& a, const maphit b){
     return a.distance - b.distance;
 }
-inline float operator-(const float a, const maphit& b){
+inline float operator-(const float a, const maphit b){
     return a - b.distance;
 }
-inline float operator-(const maphit& a, const float b){
+inline float operator-(const maphit a, const float b){
     return a.distance - b;
 }
 
@@ -41,8 +41,8 @@ inline maphit blend_sadd(maphit a, maphit b, float r){
     float e = glm::max(r - fabsf(a.distance - b.distance), 0.0f);
 	float dis = glm::min(a.distance, b.distance) - e*e*0.25f/r;
     if(fabsf(dis - a) < fabsf(dis - b))
-        return {a.id, dis};
-    return {b.id, dis};
+        return {dis, a.id};
+    return {dis, b.id};
 }
 inline maphit blend_ssub(maphit a, maphit b, float r){
     a.distance = -a.distance;
@@ -78,7 +78,8 @@ struct CSG{
 		}
 		return box_func(p - center, params);
     }
-    inline maphit blend(maphit a, maphit b){
+    inline maphit blend(maphit a, const glm::vec3& p){
+        maphit b = {this->func(p), material};
 		if(type & 4)
 			return blend_sadd(a, b, glm::min(params.x * 0.5f, 0.2f));
         if(type & 8)
@@ -92,9 +93,9 @@ struct CSG{
 typedef std::vector<CSG*> CSGList;
 
 inline maphit map(const glm::vec3& p, CSGList& list){
-    maphit hit = {nullptr, FLT_MAX};
+    maphit hit = {FLT_MAX, 0};
     for(auto* i : list){
-        hit = i->blend(hit, {i, i->func(p)});
+        hit = i->blend(hit, p);
     }
     return hit;
 }
@@ -116,7 +117,7 @@ inline void fillInd(VertexBuffer& vb, CSGList& list, const glm::vec3& center, fl
 
     if(depth == fill_depth){
         glm::vec3 N = map_normal(center, list);
-        vb.push_back({center - N * mh.distance, N, mh.id->material});
+        vb.push_back({center - N * mh.distance, N, mh.id});
         return;
     }
 

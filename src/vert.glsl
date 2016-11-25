@@ -31,12 +31,12 @@ void main() {
     }
     valid = 1;
 
-	vec3 color = hsv2rgb(vec3(fract(float(id >> 4) * 0.000001f), 0.8, 0.8));
+	vec3 color = hsv2rgb(vec3(fract(double(id) * 0.0000001), 0.8, 0.8));
 	vec3 L = light_pos.xyz;
 	float D = max(0.0f, dot(L, normal));
 	vec3 H = normalize(normalize(V) + L);
 	float S = (D > 0.0f) ? pow(max(0.0f, dot(H, normal)), 64.0f) : 0.0f;
-    
+
 	fragColor = vec3(0.01f, 0.01f, 0.01f) * color + (D * color + S * color);
 	fragColor = pow(fragColor, vec3(1.0f / 2.2f));
 }
