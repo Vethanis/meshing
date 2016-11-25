@@ -44,18 +44,27 @@ inline maphit blend_sadd(maphit a, maphit b, float r){
         return {a.id, dis};
     return {b.id, dis};
 }
+inline maphit blend_ssub(maphit a, maphit b, float r){
+    a.distance = -a.distance;
+    maphit m = blend_sadd(a, b, r);
+    m.distance = -m.distance;
+    return m;
+}
 // box: type & 1 == 0
 // sphere: type & 1 == 1
 // add: type & 2 == 0
 // sub: type & 2 == 2
 // sadd: type & 4 == 4
+// ssub: type & 8 == 8
 enum CSG_Type{
     BOXADD = 0,
     SPHEREADD = 1,
     BOXSUB = 2,
     SPHERESUB = 3,
     BOXSADD = 4,
-    SPHERESADD = 5
+    SPHERESADD = 5,
+    BOXSSUB = 8,
+    SPHERESSUB = 9
 };
 
 struct CSG{
@@ -72,6 +81,8 @@ struct CSG{
     inline maphit blend(maphit a, maphit b){
 		if(type & 4)
 			return blend_sadd(a, b, glm::min(params.x * 0.5f, 0.2f));
+        if(type & 8)
+            return blend_ssub(a, b, glm::min(params.x * 0.5f, 0.2f));
 		if(type & 2)
 			return blend_sub(a, b);
 		return blend_add(a, b);

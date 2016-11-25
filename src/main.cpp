@@ -182,7 +182,7 @@ int main(int argc, char* argv[]){
             waitcounter = int(bsize * 10.0f);
         }
         else if(input.rightMouseDown() && waitcounter < 0){
-            worker.insert(new CSG(at, vec3(bsize), box ? BOXSUB : SPHERESUB, i));
+            worker.insert(new CSG(at, vec3(bsize), box ? BOXSSUB : SPHERESSUB, i));
             waitcounter = int(bsize * 10.0f);;
         }
 
