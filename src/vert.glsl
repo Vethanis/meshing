@@ -37,6 +37,6 @@ void main() {
 	vec3 H = normalize(normalize(V) + L);
 	float S = (D > 0.0f) ? pow(max(0.0f, dot(H, normal)), 64.0f) : 0.0f;
 
-	fragColor = vec3(0.01f, 0.01f, 0.01f) * color + (D * color + S * color);
+	fragColor = vec3(0.001f, 0.001f, 0.001f) * color + (D * color + S * color);
 	fragColor = pow(fragColor, vec3(1.0f / 2.2f));
 }

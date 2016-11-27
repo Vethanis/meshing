@@ -1,4 +1,3 @@
-#include "myglheaders.h"
 #include "mesh.h"
 #include "debugmacro.h"
 
@@ -10,14 +9,9 @@ void Mesh::init(){
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    glEnableVertexAttribArray(0);    // position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-
-    glEnableVertexAttribArray(1);    // normal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(sizeof(float)*3));
-
-    glEnableVertexAttribArray(2);   // id
-    glVertexAttribPointer(2, 1, GL_INT, GL_FALSE, sizeof(Vertex), (void*)(sizeof(float)*6));
+    mesh_layout<glm::vec3>(0, sizeof(Vertex), 0);
+    mesh_layout<glm::vec3>(1, sizeof(Vertex), sizeof(glm::vec3));
+    mesh_layout<int>(2, sizeof(Vertex), 2 * sizeof(glm::vec3));
 
     MYGLERRORMACRO
     is_init = true;
