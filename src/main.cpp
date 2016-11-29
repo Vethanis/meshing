@@ -148,8 +148,7 @@ int main(int argc, char* argv[]){
     int waitcounter = 10;
     bool brush_changed = true;
     bool box = false;
-    bool edit = false;
-
+    
     Worker worker(&root);
 
     while(window.open()){

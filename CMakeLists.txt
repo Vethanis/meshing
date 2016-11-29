@@ -1,5 +1,5 @@
 # min version req'd
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.1)
 
 # name of project
 project(meshing)
@@ -28,7 +28,7 @@ if(WIN32)
 elseif(UNIX)
     set(CMAKE_CXX_FLAGS_RELEASE "-O3")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-    set(CMAKE_CXX_FLAGS "-Wall -Wfatal-errors -pthread")
+    set(CMAKE_CXX_FLAGS "-Wall -std=c++11 -Wfatal-errors -pthread")
     include_directories("/usr/include")
     link_directories("/usr/lib")
     set(PROJECT_LINK_LIBS GLEW GL glfw)

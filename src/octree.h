@@ -79,7 +79,7 @@ struct OctNode{
             n_upload.clear();
         }
         if(children){
-            for(char i = 0; i < 8; i++)
+            for(int i = 0; i < 8; i++)
                 (children + i)->~OctNode();
             free(children);
         }
@@ -89,7 +89,7 @@ struct OctNode{
         if(children)return;
         const float nlen = length() * 0.5f;
         children = (OctNode*)malloc(sizeof(OctNode) * 8);
-        for(char i = 0; i < 8; i++){
+        for(int i = 0; i < 8; i++){
             glm::vec3 n_c(center);
             n_c.x += (i&4) ? nlen : -nlen;
             n_c.y += (i&2) ? nlen : -nlen;
@@ -113,7 +113,7 @@ struct OctNode{
             return;
         }
         makeChildren();
-        for(char i = 0; i < 8; i++)
+        for(int i = 0; i < 8; i++)
             children[i].insert(item);
     }
 
@@ -122,29 +122,26 @@ struct OctNode{
 void remesh_nodes(){
     if(!n_remesh.size())
         return;
-    if(std::try_lock(remesh_mtex)){
-        for(auto* o : n_remesh){
-            o->remesh();
-        }
-		std::lock_guard<std::mutex> guard(upload_mtex);
-		n_upload.insert(n_upload.end(), n_remesh.begin(), n_remesh.end());
-        n_remesh.clear();
-        remesh_mtex.unlock();
+    std::lock_guard<std::mutex> guard(remesh_mtex);
+    for(auto* o : n_remesh){
+        o->remesh();
     }
+    std::lock_guard<std::mutex> guard2(upload_mtex);
+    n_upload.insert(n_upload.end(), n_remesh.begin(), n_remesh.end());
+    n_remesh.clear();
 }
 
 // only use main thread for this!
 void upload_meshes(){
     if(!n_upload.size())
         return;
-    if(std::try_lock(upload_mtex)){
-        for(auto* o : n_upload){
-            o->upload();
-        }
-        n_upload.clear();
-        upload_mtex.unlock();
+    std::lock_guard<std::mutex> guard(upload_mtex);
+    for(auto* o : n_upload){
+        o->upload();
     }
+    n_upload.clear();
 }
+
 // only use main thread for this!
 void draw_points(){
     std::lock_guard<std::mutex> guard(leaf_mtex);
