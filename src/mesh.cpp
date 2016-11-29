@@ -28,8 +28,8 @@ void Mesh::destroy(){
 void Mesh::update(VertexBuffer& vb){
     if(!is_init)
         this->init();
-	if (!vb.size())
-		return;
+    if (!vb.size())
+        return;
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex)*vb.size(), &vb[0], GL_STATIC_DRAW);

@@ -15,6 +15,9 @@ set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
+# copy all shader files
+file(GLOB GLSL_FILES "src/*.glsl")
+
 # compile flags and library locations
 if(WIN32)
     set(CMAKE_CXX_FLAGS_RELEASE "/O2")
@@ -25,6 +28,8 @@ if(WIN32)
     file(GLOB DLL_FILES "lib/*.dll")
     file(COPY ${DLL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Release NO_SOURCE_PERMISSIONS)
     file(COPY ${DLL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Debug NO_SOURCE_PERMISSIONS)
+    file(COPY ${GLSL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Release NO_SOURCE_PERMISSIONS)
+    file(COPY ${GLSL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Debug NO_SOURCE_PERMISSIONS)
 elseif(UNIX)
     set(CMAKE_CXX_FLAGS_RELEASE "-O3")
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
@@ -32,13 +37,11 @@ elseif(UNIX)
     include_directories("/usr/include")
     link_directories("/usr/lib")
     set(PROJECT_LINK_LIBS GLEW GL glfw)
+    file(COPY ${GLSL_FILES} DESTINATION ${CMAKE_BINARY_DIR} NO_SOURCE_PERMISSIONS)
 endif()
 
 
-# copy all shader files
-file(GLOB GLSL_FILES "src/*.glsl")
-file(COPY ${GLSL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Release NO_SOURCE_PERMISSIONS)
-file(COPY ${GLSL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Debug NO_SOURCE_PERMISSIONS)
+
 
 
 # wildcard add source files like so:

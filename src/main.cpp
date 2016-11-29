@@ -146,7 +146,6 @@ int main(int argc, char* argv[]){
     unsigned i = 0;
     float t = (float)glfwGetTime();
     int waitcounter = 10;
-    bool brush_changed = true;
     bool box = false;
     
     Worker worker(&root);
@@ -164,17 +163,16 @@ int main(int argc, char* argv[]){
 		uni.seed.x = rand();
         unibuf.upload(&uni, sizeof(uni));
 
-        if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f; brush_changed = true;}
-        else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f; brush_changed = true;}
+        if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f;}
+        else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f;}
 
-	    if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { box = !box; brush_changed = true; waitcounter = 10;}
+	    if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { box = !box; waitcounter = 10;}
 
         {
             vb.clear();
     	    CSG item(at, vec3(bsize), box ? BOXADD : SPHEREADD, i + 1);
             fillCells(vb, item, at, bsize);
             brushMesh.update(vb);
-            brush_changed = false;
         }
 
         if(input.leftMouseDown() && waitcounter < 0){
