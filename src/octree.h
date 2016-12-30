@@ -4,41 +4,94 @@
 #include "csg.h"
 #include "stdlib.h"
 #include <unordered_set>
-#include <mutex>
-#include "math.h"
+#include "hybrid_mutex.h"
+#include "mesh.h"
 
 namespace oct{
 
 #define LEAF_DEPTH 5
 
 struct OctNode;
-struct leafData;
 
-static std::vector<leafData*> ldata, n_upload;
-static std::unordered_set<leafData*> n_remesh;
-static std::mutex leaf_mtex, remesh_mtex, upload_mtex;
-static CSGList csg_ops;
-
-struct leafData{
-    VertexBuffer vb;
+struct leafData_t{
     CSGList items;
-    Mesh mesh;
+    VertexBuffer vb;
     glm::vec3 center;
     float length;
+};
+
+struct leafData{
+    std::vector<leafData_t> data;
+    std::vector<Mesh> meshes;
+    std::unordered_set<size_t> n_remesh;
+    std::vector<size_t> n_update;
+    hybrid_mutex mesh_mut, data_mut, upd_mut, rem_mut;
+    CSGList all_ops;
+
     inline void remesh(){
-        vb.clear();
-        fillCells(vb, items, center, length);
+        std::lock_guard<hybrid_mutex> guard(rem_mut);
+        for(auto i : n_remesh){
+            leafData_t& item = data[i];
+            item.vb.clear();
+            fillCells(item.vb, item.items, item.center, item.length);
+        }
+        std::lock_guard<hybrid_mutex> g2(upd_mut);
+        n_update.insert(n_update.end(), n_remesh.begin(), n_remesh.end());
+        n_remesh.clear();
     }
-    inline void upload(){
-        mesh.update(vb);
+    // gl thread only
+    inline void update(){
+        std::lock_guard<hybrid_mutex> guard(upd_mut);
+        std::lock_guard<hybrid_mutex> g2(mesh_mut);
+        for(auto i : n_update){
+            meshes[i].update(data[i].vb);
+        }
+        n_update.clear();
+    }
+    // gl thread only
+    inline void draw(){
+        std::lock_guard<hybrid_mutex> guard(mesh_mut);
+        for(auto& i : meshes){
+            i.draw();
+        }
+    }
+
+    inline size_t append(const leafData_t& item){
+        std::lock_guard<hybrid_mutex> guard(data_mut);
+        std::lock_guard<hybrid_mutex> g2(mesh_mut);
+        data.push_back(item);
+        meshes.push_back({});
+        return data.size() - 1;
+    }
+
+    inline void insert_CSG(size_t i, CSG* item){
+        std::lock_guard<hybrid_mutex> guard(data_mut);
+        data[i].items.push_back(item);
+        std::lock_guard<hybrid_mutex> g2(rem_mut);
+        n_remesh.insert(i);
+    }
+
+    inline void capture_CSG(CSG* op){
+        all_ops.push_back(op);
+    }
+
+    ~leafData(){
+        for(auto& i : meshes){
+            i.destroy();
+        }
+        for(CSG* i : all_ops){
+            delete i;
+        }
     }
 };
+
+static leafData LEAF_DATA;
 
 static float octlen = 8.0f;
 
 struct OctNode{
     OctNode* children;
-    leafData* data;
+    size_t id;
     glm::vec3 center;
     char depth;
     float length(){
@@ -53,38 +106,20 @@ struct OctNode{
     }
     // always instantiate root node with depth 0
     OctNode(const glm::vec3& c, char d=0)
-        : children(nullptr), data(nullptr), center(c), depth(d){
-        const float len = this->length();
+        : children(nullptr), id(0), center(c), depth(d){
         if(depth == LEAF_DEPTH){ // if a leaf
-            data = new leafData();
-            data->center = this->center;
-            data->length = len;
-            std::lock_guard<std::mutex> guard(leaf_mtex);
-            ldata.push_back(data);
+            id = LEAF_DATA.append({{}, {}, center, length()});
         }
     }
     ~OctNode(){
-        if(!depth){
-            // clean up our csgs
-            for(CSG* i : csg_ops)
-                delete i;
-            csg_ops.clear();
-            // clean up our leaf datas
-            for(auto* i : ldata){
-                i->mesh.destroy();
-                delete i;
-            }
-            ldata.clear();
-            n_remesh.clear();
-            n_upload.clear();
-        }
         if(children){
             for(char i = 0; i < 8; i++)
                 (children + i)->~OctNode();
             free(children);
         }
     }
-    inline bool isLeaf(){return !children;}
+    inline bool isLeaf(){return depth == LEAF_DEPTH;}
+    inline bool isRoot(){return !depth;}
     inline void makeChildren(){
         if(children)return;
         const float nlen = length() * 0.5f;
@@ -100,16 +135,14 @@ struct OctNode{
     // always pass an item on the heap here
     inline void insert(CSG* item){
         if(item->func(center) >= qlen()){
-            if(!depth)
+            if(isRoot())
                 delete item;
             return;
         }
-        if(!depth)
-            csg_ops.push_back(item);
-        if(data){
-            data->items.push_back(item);
-            std::lock_guard<std::mutex> guard(remesh_mtex);
-            n_remesh.insert(data);
+        if(isRoot())
+            LEAF_DATA.capture_CSG(item);
+        if(isLeaf()){
+            LEAF_DATA.insert_CSG(id, item);
             return;
         }
         makeChildren();
@@ -118,40 +151,6 @@ struct OctNode{
     }
 
 };
-
-void remesh_nodes(){
-    if(!n_remesh.size())
-        return;
-    if(std::try_lock(remesh_mtex)){
-        for(auto* o : n_remesh){
-            o->remesh();
-        }
-		std::lock_guard<std::mutex> guard(upload_mtex);
-		n_upload.insert(n_upload.end(), n_remesh.begin(), n_remesh.end());
-        n_remesh.clear();
-        remesh_mtex.unlock();
-    }
-}
-
-// only use main thread for this!
-void upload_meshes(){
-    if(!n_upload.size())
-        return;
-    if(std::try_lock(upload_mtex)){
-        for(auto* o : n_upload){
-            o->upload();
-        }
-        n_upload.clear();
-        upload_mtex.unlock();
-    }
-}
-// only use main thread for this!
-void draw_points(){
-    std::lock_guard<std::mutex> guard(leaf_mtex);
-    for(auto* o : ldata){
-        o->mesh.draw();
-    }
-}
 
 };
 

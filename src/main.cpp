@@ -1,23 +1,26 @@
 #include "myglheaders.h"
+#include "stdio.h"
 #include "camera.h"
 #include "debugmacro.h"
 #include "window.h"
 #include "input.h"
 #include "glprogram.h"
 #include "UBO.h"
-#include "mesh.h"
 #include "timer.h"
 #include "octree.h"
 #include <thread>
-#include <mutex>
 #include <condition_variable>
-#include <atomic>
+#include "circular_queue.h"
+#include "mesh.h"
 
 #include "time.h"
 #include <random>
 
+#include "openvr/openvr.h"
+
 using namespace std;
 using namespace glm;
+using namespace vr;
 
 struct Uniforms{
     mat4 MVP;
@@ -28,31 +31,26 @@ struct Uniforms{
 
 class Worker{
     thread m_thread;
-    mutex thread_mtex;
-    condition_variable cvar;
+    hybrid_mutex thread_mtex;
+    condition_variable_any cvar;
     oct::OctNode* root;
-    CSG* buffer[64];
-    atomic<unsigned char> head, tail;
+    CircularQueue<CSG*, 128> queue;
     bool run;
     inline bool empty(){
-        return head.load(memory_order_relaxed) == tail.load(memory_order_relaxed);
+        return queue.empty();
     }
-    inline unsigned char next(atomic<unsigned char>& counter){
-        return (counter.load(memory_order_relaxed) + 1) & 63;
-    }
-    inline unsigned char current(atomic<unsigned char>& counter){
-        return counter.load(memory_order_relaxed);
+    inline bool full(){
+        return queue.full();
     }
     void kernel(){
         while(run){
-            unique_lock<mutex> lock(thread_mtex);
+            unique_lock<hybrid_mutex> lock(thread_mtex);
             cvar.wait(lock, [this]{return !Worker::empty() || !run;});
 			if (!run)return;
             while(!empty()){
-                root->insert(buffer[current(head)]);
-                head = next(head);
+                root->insert(queue.pop());
             }
-            oct::remesh_nodes();
+            oct::LEAF_DATA.remesh();
         }
     }
 public:
@@ -62,28 +60,22 @@ public:
 		m_thread.join();
 	}
     Worker(oct::OctNode* _root)
-        : root(_root), head(0), tail(0), run(true){
+        : root(_root), run(true){
         m_thread = thread(&Worker::kernel, this);
     }
     ~Worker(){
 		quit();
     }
     inline void insert(CSG* csg){
-        if(next(tail) == current(head)){ // avoid overflow
+        if(full()){ // avoid overflow
             puts("Worker thread circular buffer overflow");
             delete csg;
             return;
         }
 
-        buffer[tail] = csg;
-        tail = next(tail);
+        queue.push(csg);
         cvar.notify_one();
     }
-    inline void pull(){
-        oct::upload_meshes();
-        oct::draw_points();
-    }
-
 };
 
 
@@ -112,6 +104,23 @@ int main(int argc, char* argv[]){
         HEIGHT = atoi(argv[2]);
     }
 
+    /*
+    if(VR_IsHmdPresent()){
+        EVRInitError errcode;
+        IVRSystem* vr_sys = VR_Init(&errcode, VRApplication_Scene);
+        if(errcode){
+            puts(VR_GetVRInitErrorAsSymbol(errcode));
+            VR_Shutdown();
+            return 1;
+        }
+        assert(VR_IsRuntimeInstalled());
+
+        IVRSystem* vrsys = (IVRSystem*)VR_GetGenericInterface("IVRSystem", &errcode);
+
+        VR_Shutdown();
+    }
+    */
+
     Camera camera;
     camera.resize(WIDTH, HEIGHT);
     camera.setEye(vec3(0.0f, 0.0f, 3.0f));
@@ -126,9 +135,6 @@ int main(int argc, char* argv[]){
     colorProg.bind();
 
     oct::OctNode root(glm::vec3(0.0f), 0);
-    Mesh brushMesh;
-    brushMesh.init();
-    VertexBuffer vb;
 
     Timer timer;
 
@@ -148,15 +154,17 @@ int main(int argc, char* argv[]){
     int waitcounter = 10;
     bool brush_changed = true;
     bool box = false;
-    bool edit = false;
 
     Worker worker(&root);
+
+    Mesh brush_mesh;
+    VertexBuffer brush_vb;
 
     while(window.open()){
         input.poll(frameBegin(i, t), camera);
         waitcounter--;
 
-        glm::vec3 at = camera.getEye() + 3.0f * camera.getAxis();
+        glm::vec3 at = camera.getEye() + (1.0f + (2.0f * bsize)) * camera.getAxis();
 
         uni.MVP = camera.getVP();
         uni.eye = vec4(camera.getEye(), 0.0f);
@@ -165,17 +173,16 @@ int main(int argc, char* argv[]){
 		uni.seed.x = rand();
         unibuf.upload(&uni, sizeof(uni));
 
-        if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f; brush_changed = true;}
-        else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f; brush_changed = true;}
+        if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f;}
+        else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f;}
 
-	    if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { box = !box; brush_changed = true; waitcounter = 10;}
+	    if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { box = !box; waitcounter = 10;}
 
-        {
-            vb.clear();
+        {   // rebuild brush at new looking point
     	    CSG item(at, vec3(bsize), box ? BOXADD : SPHEREADD, i + 1);
-            fillCells(vb, item, at, bsize);
-            brushMesh.update(vb);
-            brush_changed = false;
+            brush_vb.clear();
+            fillCells(brush_vb, item, at, bsize);
+            brush_mesh.update(brush_vb);
         }
 
         if(input.leftMouseDown() && waitcounter < 0){
@@ -187,12 +194,14 @@ int main(int argc, char* argv[]){
             waitcounter = int(bsize * 10.0f);;
         }
 
-        brushMesh.draw();
-        worker.pull();
+        brush_mesh.draw();
+        oct::LEAF_DATA.update();
+        oct::LEAF_DATA.draw();
 
         window.swap();
     }
 
-    brushMesh.destroy();
+    brush_mesh.destroy();
+
     return 0;
 }

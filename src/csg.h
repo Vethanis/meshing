@@ -5,6 +5,7 @@
 #include <cfloat>
 #include <vector>
 #include "math.h"
+#include "vertexbuffer.h"
 
 struct CSG;
 
@@ -132,13 +133,13 @@ inline void fillInd(VertexBuffer& vb, CSGList& list, const glm::vec3& center, fl
 }
 
 inline void fillCells(VertexBuffer& vb, CSGList& list, const glm::vec3& center, float radius){
-    if (!list.size())return;
-    vb.clear();
+    if (!list.size()){
+        return;
+    }
     fillInd(vb, list, center, radius, 0);
 }
 
 inline void fillCells(VertexBuffer& vb, CSG& item, const glm::vec3& center, float radius) {
-	vb.clear();
 	CSGList list;
 	list.push_back(&item);
 	fillInd(vb, list, center, radius, 0);
