@@ -4,7 +4,7 @@
 #include "csg.h"
 #include "stdlib.h"
 #include <unordered_set>
-#include "hybrid_mutex.h"
+#include "circular_queue.h"
 #include "mesh.h"
 
 namespace oct{
@@ -23,52 +23,45 @@ struct leafData_t{
 struct leafData{
     std::vector<leafData_t> data;
     std::vector<Mesh> meshes;
-    std::unordered_set<size_t> n_remesh;
-    std::vector<size_t> n_update;
-    hybrid_mutex mesh_mut, data_mut, upd_mut, rem_mut;
+    CircularQueue<size_t, 1024> n_remesh, n_update;
     CSGList all_ops;
 
     inline void remesh(){
-        std::lock_guard<hybrid_mutex> guard(rem_mut);
-        for(auto i : n_remesh){
+        while(!n_remesh.empty()){
+            auto i = n_remesh.pop();
             leafData_t& item = data[i];
             item.vb.clear();
             fillCells(item.vb, item.items, item.center, item.length);
+            while(n_update.full()){};
+            n_update.push(i);
         }
-        std::lock_guard<hybrid_mutex> g2(upd_mut);
-        n_update.insert(n_update.end(), n_remesh.begin(), n_remesh.end());
-        n_remesh.clear();
     }
     // gl thread only
     inline void update(){
-        std::lock_guard<hybrid_mutex> guard(upd_mut);
-        std::lock_guard<hybrid_mutex> g2(mesh_mut);
-        for(auto i : n_update){
+        while(!n_update.empty()){
+            auto i = n_update.pop();
             meshes[i].update(data[i].vb);
         }
-        n_update.clear();
     }
     // gl thread only
     inline void draw(){
-        std::lock_guard<hybrid_mutex> guard(mesh_mut);
         for(auto& i : meshes){
             i.draw();
         }
     }
 
     inline size_t append(const leafData_t& item){
-        std::lock_guard<hybrid_mutex> guard(data_mut);
-        std::lock_guard<hybrid_mutex> g2(mesh_mut);
         data.push_back(item);
         meshes.push_back({});
         return data.size() - 1;
     }
 
     inline void insert_CSG(size_t i, CSG* item){
-        std::lock_guard<hybrid_mutex> guard(data_mut);
         data[i].items.push_back(item);
-        std::lock_guard<hybrid_mutex> g2(rem_mut);
-        n_remesh.insert(i);
+        while(n_remesh.full()){
+            remesh();
+        }
+        n_remesh.set_push(i);
     }
 
     inline void capture_CSG(CSG* op){
