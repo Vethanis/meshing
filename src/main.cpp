@@ -152,7 +152,6 @@ int main(int argc, char* argv[]){
     unsigned i = 0;
     float t = (float)glfwGetTime();
     int waitcounter = 10;
-    bool brush_changed = true;
     bool box = false;
 
     Worker worker(&root);

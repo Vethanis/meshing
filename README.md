@@ -6,7 +6,7 @@ Functions are added to an octree which causes affected areas to be re-evaluated.
 Function evaluation consists of iterating over a hierarchical grid to find distances smaller than some threshold.
 Zero-crossing points are collected and uploaded to an openGL vertex buffer, then drawn.
 
-__[Video](https://youtu.be/6Rybvj4Wzpk)__
+__[Video](https://www.youtube.com/watch?v=L7l1_QjAOaE)__
 
 __Controls:__
 * mouse movement: look around
@@ -19,27 +19,24 @@ __Controls:__
 * AD: left and right
 * left shift, space: down and up
 
-__Linux Dependencies:__
+__Dependencies:__
 * OpenGL 4.3
 * glew
 * glfw3
 * glm
-* clang
-* make
+* c++11 compiler
+* cmake
   
-__Linux Building:__
-* make -j release
+__Building:__
+* mkdir build
+* cd build
+* cmake .. -G <your platform>
+* cd ..
+* cmake --build build --config Release
 
-__Linux Running:__
-* make run
+__Running:__
+* cd bin
+* ./main <width> <height> 
 
-__Windows Building:__
-* requires VS2015 installed at default location, or an x64 cmd environment
-* requires Windows 7.1A SDK installed in default location for OpenGL32.lib
-* loadenv.bat
-* build.bat
-* run.bat
-
-__[Windows Binary](https://github.com/gheshu/meshing/tree/master/build)__
 
 ![alt tag](http://i.imgur.com/fyDl3kW.png)

@@ -113,7 +113,7 @@ struct OctNode{
     }
     ~OctNode(){
         if(children){
-            for(char i = 0; i < 8; i++)
+            for(int i = 0; i < 8; i++)
                 (children + i)->~OctNode();
             free(children);
         }
@@ -124,7 +124,7 @@ struct OctNode{
         if(children)return;
         const float nlen = length() * 0.5f;
         children = (OctNode*)malloc(sizeof(OctNode) * 8);
-        for(char i = 0; i < 8; i++){
+        for(int i = 0; i < 8; i++){
             glm::vec3 n_c(center);
             n_c.x += (i&4) ? nlen : -nlen;
             n_c.y += (i&2) ? nlen : -nlen;
@@ -146,11 +146,12 @@ struct OctNode{
             return;
         }
         makeChildren();
-        for(char i = 0; i < 8; i++)
+        for(int i = 0; i < 8; i++)
             children[i].insert(item);
     }
 
 };
+
 
 };
 
