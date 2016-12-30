@@ -5,6 +5,7 @@
 #include "stdlib.h"
 #include <unordered_set>
 #include "circular_queue.h"
+#include "hybrid_mutex.h"
 #include "mesh.h"
 
 namespace oct{
@@ -86,10 +87,11 @@ struct OctNode{
     OctNode* children;
     size_t id;
     glm::vec3 center;
-    char depth;
+    int depth;
+    hybrid_mutex mut;
     float length(){
         float len = octlen;
-        for(char i = 0; i < depth; i++)
+        for(int i = 0; i < depth; i++)
             len *= 0.5f;
         return len;
     }
@@ -98,7 +100,7 @@ struct OctNode{
         return 1.732051f * this->length();
     }
     // always instantiate root node with depth 0
-    OctNode(const glm::vec3& c, char d=0)
+    OctNode(const glm::vec3& c, int d=0)
         : children(nullptr), id(0), center(c), depth(d){
         if(depth == LEAF_DEPTH){ // if a leaf
             id = LEAF_DATA.append({{}, {}, center, length()});
@@ -114,6 +116,8 @@ struct OctNode{
     inline bool isLeaf(){return depth == LEAF_DEPTH;}
     inline bool isRoot(){return !depth;}
     inline void makeChildren(){
+        if(children)return;
+        std::lock_guard<hybrid_mutex> lock(mut);
         if(children)return;
         const float nlen = length() * 0.5f;
         children = (OctNode*)malloc(sizeof(OctNode) * 8);

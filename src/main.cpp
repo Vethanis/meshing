@@ -30,7 +30,7 @@ struct Uniforms{
 };
 
 class Worker{
-    thread m_thread;
+    vector<thread> threads;
     hybrid_mutex thread_mtex;
     condition_variable_any cvar;
     oct::OctNode* root;
@@ -57,11 +57,15 @@ public:
 	inline void quit() {
 		run = false;
 		cvar.notify_all();
-		m_thread.join();
+		for(auto& i : threads){
+            i.join();
+        }
 	}
     Worker(oct::OctNode* _root)
         : root(_root), run(true){
-        m_thread = thread(&Worker::kernel, this);
+        for(int i = 0; i < 4; i++){
+            threads.push_back(thread(&Worker::kernel, this));
+        }
     }
     ~Worker(){
 		quit();
