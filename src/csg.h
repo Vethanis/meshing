@@ -89,6 +89,12 @@ struct CSG{
 			return blend_sub(a, b);
 		return blend_add(a, b);
     }
+    inline float smoothness(){
+        if(type & (4 | 8)){
+            return glm::min(params.x * 0.5f, 0.2f);
+        }
+        return 0.0f;
+    }
 };
 
 typedef std::vector<CSG*> CSGList;
@@ -122,13 +128,21 @@ inline void fillInd(VertexBuffer& vb, CSGList& list, const glm::vec3& center, fl
         return;
     }
 
+    CSGList pruned;
+    if(list.size() > 3 && depth){
+        for(CSG* i : list){
+            if(i->func(center) < radius * 1.732051f + i->smoothness())
+                pruned.push_back(i);
+        }
+    }
+
     const float hr = radius * 0.5f;
-    for(char i = 0; i < 8; i++){
+    for(int i = 0; i < 8; i++){
         glm::vec3 c(center);
         c.x += (i & 4) ? hr : -hr;
         c.y += (i & 2) ? hr : -hr;
         c.z += (i & 1) ? hr : -hr;
-        fillInd(vb, list, c, hr, depth + 1);
+        fillInd(vb, pruned.size() ? pruned : list, c, hr, depth + 1);
     }
 }
 
