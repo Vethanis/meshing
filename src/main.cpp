@@ -202,11 +202,11 @@ int main(int argc, char* argv[]){
 
         if(input.leftMouseDown() && waitcounter < 0){
             worker.insert(new CSG({at, vec3(bsize), color, smoothness * bsize, box ? BOXSADD : SPHERESADD}));
-            waitcounter = 2;
+            waitcounter = 1 + int(bsize * 4.0f);
         }
         else if(input.rightMouseDown() && waitcounter < 0){
             worker.insert(new CSG({at, vec3(bsize), color, smoothness * bsize, box ? BOXSSUB : SPHERESSUB}));
-            waitcounter = 2;
+            waitcounter = 1 + int(bsize * 4.0f);
         }
 
         brush_mesh.draw();

@@ -24,7 +24,7 @@ struct leafData_t{
 struct leafData{
     std::vector<leafData_t> data;
     std::vector<Mesh> meshes;
-    CircularQueue<size_t, 1024> n_remesh, n_update;
+    CircularQueue<size_t, 4096> n_remesh, n_update;
     CSGList all_ops;
 
     inline void remesh(){
