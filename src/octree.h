@@ -30,9 +30,11 @@ struct leafData{
     inline void remesh(){
         while(!n_remesh.empty()){
             auto i = n_remesh.pop();
-            leafData_t& item = data[i];
-            item.vb.clear();
-            fillCells(item.vb, item.items, item.center, item.length);
+            {
+                leafData_t& item = data[i];
+                item.vb.clear();
+                fillCells(item.vb, item.items, item.center, item.length);
+            }
             while(n_update.full()){};
             n_update.push(i);
         }
@@ -58,7 +60,9 @@ struct leafData{
     }
 
     inline void insert_CSG(size_t i, CSG* item){
-        data[i].items.push_back(item);
+        {
+            data[i].items.push_back(item);
+        }
         while(n_remesh.full()){
             remesh();
         }
@@ -131,13 +135,12 @@ struct OctNode{
     }
     // always pass an item on the heap here
     inline void insert(CSG* item){
-        if(item->func(center) >= qlen()){
-            if(isRoot())
-                delete item;
+        if(isRoot()){
+            LEAF_DATA.capture_CSG(item);
+        }
+        if(item->func(center) >= qlen() + item->smoothness){
             return;
         }
-        if(isRoot())
-            LEAF_DATA.capture_CSG(item);
         if(isLeaf()){
             LEAF_DATA.insert_CSG(id, item);
             return;

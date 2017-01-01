@@ -59,7 +59,7 @@ void Mesh::init(){
 
     mesh_layout<glm::vec3>(0, sizeof(Vertex), 0);
     mesh_layout<glm::vec3>(1, sizeof(Vertex), sizeof(glm::vec3));
-    mesh_layout<int>(2, sizeof(Vertex), 2 * sizeof(glm::vec3));
+    mesh_layout<glm::vec3>(2, sizeof(Vertex), 2 * sizeof(glm::vec3));
 
     MYGLERRORMACRO
     is_init = true;

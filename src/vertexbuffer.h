@@ -5,8 +5,7 @@
 #include <vector>
 
 struct Vertex{
-    glm::vec3 position, normal;
-    int id;
+    glm::vec3 position, normal, color;
 };
 
 typedef std::vector<Vertex> VertexBuffer;

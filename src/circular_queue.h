@@ -30,7 +30,6 @@ public:
     inline void push(const T& item){
         data[head] = item;
         head = ((head + 1) & (capacity - 1));
-
     }
     inline void set_push(const T& item){
         for(size_t i = tail; i != head; i = (i + 1) & (capacity - 1)){

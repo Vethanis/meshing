@@ -150,12 +150,13 @@ int main(int argc, char* argv[]){
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_PROGRAM_POINT_SIZE);
 
-    float bsize = 0.05f;
+    float bsize = 0.05f, smoothness = 0.333f;
+    glm::vec3 color = {0.5f, 0.5f, 0.5f};
 
     input.poll();
     unsigned i = 0;
     float t = (float)glfwGetTime();
-    int waitcounter = 10;
+    int waitcounter = 2;
     bool box = false;
 
     Worker worker(&root);
@@ -171,30 +172,41 @@ int main(int argc, char* argv[]){
 
         uni.MVP = camera.getVP();
         uni.eye = vec4(camera.getEye(), 0.0f);
-        if(glfwGetKey(window.getWindow(), GLFW_KEY_E))
+        if(glfwGetKey(window.getWindow(), GLFW_KEY_E)){
             uni.light_pos = vec4(-1.0f * camera.getAxis(), 0.0f);
+        }
 		uni.seed.x = rand();
         unibuf.upload(&uni, sizeof(uni));
 
         if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f;}
         else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f;}
+        if(glfwGetKey(window.getWindow(), GLFW_KEY_RIGHT)){ smoothness *= 1.1f; smoothness = smoothness >= 0.5f ? 0.5f : smoothness;}
+        else if(glfwGetKey(window.getWindow(), GLFW_KEY_LEFT)){ smoothness *= 0.9f;}
 
 	    if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { box = !box; waitcounter = 10;}
 
+	    if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_7)) { color.x *= 1.1f;}
+	    else if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_4)) { color.x *= 0.9f;}
+	    if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_8)) { color.y *= 1.1f;}
+	    else if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_5)) { color.y *= 0.9f;}
+	    if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_9)) { color.z *= 1.1f;}
+	    else if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_6)) { color.z *= 0.9f;}
+        color = glm::clamp(glm::vec3(0.0f), glm::vec3(1.0f), color);
+
         {   // rebuild brush at new looking point
-    	    CSG item(at, vec3(bsize), box ? BOXADD : SPHEREADD, i + 1);
+    	    CSG item = {at, vec3(bsize), color, 0.0f, box ? BOXADD : SPHEREADD};
             brush_vb.clear();
             fillCells(brush_vb, item, at, bsize);
             brush_mesh.update(brush_vb);
         }
 
         if(input.leftMouseDown() && waitcounter < 0){
-            worker.insert(new CSG(at, vec3(bsize), box ? BOXSADD : SPHERESADD, i + 1));
-            waitcounter = int(bsize * 10.0f);
+            worker.insert(new CSG({at, vec3(bsize), color, smoothness * bsize, box ? BOXSADD : SPHERESADD}));
+            waitcounter = 2;
         }
         else if(input.rightMouseDown() && waitcounter < 0){
-            worker.insert(new CSG(at, vec3(bsize), box ? BOXSSUB : SPHERESSUB, i + 1));
-            waitcounter = int(bsize * 10.0f);;
+            worker.insert(new CSG({at, vec3(bsize), color, smoothness * bsize, box ? BOXSSUB : SPHERESSUB}));
+            waitcounter = 2;
         }
 
         brush_mesh.draw();
