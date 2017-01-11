@@ -14,10 +14,14 @@ __Controls:__
 * right click: apply brush subtractively
 * 1 key: toggle between sphere and cube brushes
 * Up Arrow, Down Arrow: increase or decrease brush size
-* 3 and 4 keys: increase and decrease brush fidelity
+* Right Arrow, Left Arrow: increase or decrease brush smoothing
 * WS: forward and backward
 * AD: left and right
 * left shift, space: down and up
+* E: set light direction
+* numpad 7, 8, 9: increase red, green, or blue of brush color
+* numpad 4, 5, 6: decrease red, green, or blue of brush color
+* ESC: close program
 
 __Dependencies:__
 * OpenGL 4.3
