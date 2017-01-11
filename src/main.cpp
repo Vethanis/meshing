@@ -16,11 +16,8 @@
 #include "time.h"
 #include <random>
 
-#include "openvr/openvr.h"
-
 using namespace std;
 using namespace glm;
-using namespace vr;
 
 struct Uniforms{
     mat4 MVP;
@@ -108,29 +105,13 @@ int main(int argc, char* argv[]){
         HEIGHT = atoi(argv[2]);
     }
 
-    /*
-    if(VR_IsHmdPresent()){
-        EVRInitError errcode;
-        IVRSystem* vr_sys = VR_Init(&errcode, VRApplication_Scene);
-        if(errcode){
-            puts(VR_GetVRInitErrorAsSymbol(errcode));
-            VR_Shutdown();
-            return 1;
-        }
-        assert(VR_IsRuntimeInstalled());
-
-        IVRSystem* vrsys = (IVRSystem*)VR_GetGenericInterface("IVRSystem", &errcode);
-
-        VR_Shutdown();
-    }
-    */
 
     Camera camera;
     camera.resize(WIDTH, HEIGHT);
     camera.setEye(vec3(0.0f, 0.0f, 3.0f));
     camera.update();
 
-    Window window(WIDTH, HEIGHT, 4, 3, "Meshing");
+    Window window(WIDTH, HEIGHT, 3, 3, "Meshing");
     Input input(window.getWindow());
     GLProgram colorProg;
     colorProg.addShader("vert.glsl", GL_VERTEX_SHADER);
@@ -145,7 +126,7 @@ int main(int argc, char* argv[]){
     Uniforms uni;
     uni.light_pos = vec4(-1.0f * camera.getAxis(), 0.0f);
 	uni.seed.x = rand();
-    UBO unibuf(&uni, sizeof(uni), 0);
+    UBO unibuf(&uni, sizeof(uni), "UniBlock", &colorProg.id, 1);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_PROGRAM_POINT_SIZE);

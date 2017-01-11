@@ -11,31 +11,31 @@
 using namespace std;
 
 GLProgram::GLProgram(){
-    progHandle = glCreateProgram();
+    id = glCreateProgram();
 }
 
 GLProgram::~GLProgram(){
-    glDeleteProgram(progHandle);
+    glDeleteProgram(id);
     MYGLERRORMACRO
 }
 
 void GLProgram::addShader(const char* path, int type){
     char* src = load_file(path);
     unsigned handle = createShader(src, type);
-    glAttachShader(progHandle, handle);
+    glAttachShader(id, handle);
     delete[] src;
 }
 
 void GLProgram::link(){
-    glLinkProgram(progHandle);
+    glLinkProgram(id);
 
     int result = 0;
-    glGetProgramiv(progHandle, GL_LINK_STATUS, &result);
+    glGetProgramiv(id, GL_LINK_STATUS, &result);
     if(!result){
         int loglen = 0;
-        glGetProgramiv(progHandle, GL_INFO_LOG_LENGTH, &loglen);
+        glGetProgramiv(id, GL_INFO_LOG_LENGTH, &loglen);
         char* log = new char[loglen + 1];
-        glGetProgramInfoLog(progHandle, loglen, NULL, log);
+        glGetProgramInfoLog(id, loglen, NULL, log);
         log[loglen] = 0;
         puts(log);
         delete[] log;
@@ -43,14 +43,14 @@ void GLProgram::link(){
 }
 
 void GLProgram::bind(){
-    glUseProgram(progHandle);
+    glUseProgram(id);
     MYGLERRORMACRO
 }
 
 int GLProgram::getUniformLocation(const std::string& name){
     auto iter = uniforms.find(name);
     if(iter == end(uniforms)){
-        const int v = glGetUniformLocation(progHandle, name.c_str());
+        const int v = glGetUniformLocation(id, name.c_str());
         uniforms[name] = v;
         return v;
     }

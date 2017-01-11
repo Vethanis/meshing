@@ -5,11 +5,10 @@
 #include <unordered_map>
 #include "glm/glm.hpp"
 
-class GLProgram{
+struct GLProgram{
     std::unordered_map<std::string, unsigned> uniforms;
-    unsigned progHandle;
+    unsigned id;
     int getUniformLocation(const std::string& name);
-public:
     GLProgram();
     ~GLProgram();
     void addShader(const char* path, int type);
