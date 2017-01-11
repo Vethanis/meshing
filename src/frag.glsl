@@ -26,7 +26,7 @@ void main(){
     if(valid == 0)
         discard;
 
-    int s = int(dot(gl_FragCoord.xy, gl_PointCoord.xy)) * seed.x;
+    int s = int(dot(gl_FragCoord.xy, gl_PointCoord.xy) * float(seed.x));
     vec2 coord = gl_PointCoord * 2.0 - 1.0;
 
     if(length(coord) > randUni(s)){
