@@ -24,7 +24,7 @@ __Controls:__
 * ESC: close program
 
 __Dependencies:__
-* OpenGL 4.3
+* OpenGL 3.3
 * glew
 * glfw3
 * glm
