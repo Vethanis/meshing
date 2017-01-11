@@ -41,6 +41,3 @@ __Building:__
 __Running:__
 * cd bin
 * ./main <width> <height> 
-
-
-![alt tag](http://i.imgur.com/fyDl3kW.png)
