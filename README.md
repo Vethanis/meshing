@@ -48,7 +48,7 @@ Zero-crossing points are collected and uploaded to an openGL vertex buffer, then
 
 * mkdir build
 * cd build
-* cmake .. -G <your platform>
+* cmake .. -G "*your platform*"
 * cd ..
 * cmake --build build --config Release
 
