@@ -6,7 +6,7 @@ Functions are added to an octree which causes affected areas to be re-evaluated.
 Function evaluation consists of iterating over a hierarchical grid to find distances smaller than some threshold.
 Zero-crossing points are collected and uploaded to an openGL vertex buffer, then drawn.
 
-__[Video](https://www.youtube.com/watch?v=PMKJSMjiwCs)__
+![**Video**](https://www.youtube.com/watch?v=PMKJSMjiwCs)
 
 __Controls:__
 * mouse movement: look around
