@@ -20,6 +20,8 @@ Zero-crossing points are collected and uploaded to an openGL vertex buffer, then
 | 1              | Toggle shape         |
 | Up arrow       | Increase brush size  |
 | Down arrow     | Descrease brush size |
+| Left arrow     | Decrease blending    |
+| Right arrow    | Increase blending    |
 | W              | Move forward         |
 | S              | Move backward        |
 | A              | Move left            |
