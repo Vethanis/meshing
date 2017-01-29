@@ -12,19 +12,28 @@ Zero-crossing points are collected and uploaded to an openGL vertex buffer, then
 
 ## __Controls:__
 
-* mouse movement: look around
-* left click: apply brush additively
-* right click: apply brush subtractively
-* 1 key: toggle between sphere and cube brushes
-* Up Arrow, Down Arrow: increase or decrease brush size
-* Right Arrow, Left Arrow: increase or decrease brush smoothing
-* WS: forward and backward
-* AD: left and right
-* left shift, space: down and up
-* E: set light direction
-* numpad 7, 8, 9: increase red, green, or blue of brush color
-* numpad 4, 5, 6: decrease red, green, or blue of brush color
-* ESC: close program
+| **Input**      | **Action**           |
+|----------------|----------------------|
+| Mouse movement | Look around          |
+| Left click     | Add brush            |
+| Right click    | Remove brush         |
+| 1              | Toggle shape         |
+| Up arrow       | Increase brush size  |
+| Down arrow     | Descrease brush size |
+| W              | Move forward         |
+| S              | Move backward        |
+| A              | Move left            |
+| D              | Move right           |
+| Left shift     | Move down            |
+| Spacebar       | Move up              |
+| E              | Set light direction  |
+| NUM 7          | Increase red         |
+| NUM 4          | Decrease red         |
+| NUM 8          | Increase green       |
+| NUM 5          | Decrease green       |
+| NUM 9          | Increase blue        |
+| NUM 6          | Decrease blue        |
+| ESC            | Close program        |
 
 ## __Dependencies:__
 
