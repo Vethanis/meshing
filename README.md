@@ -6,9 +6,12 @@ Functions are added to an octree which causes affected areas to be re-evaluated.
 Function evaluation consists of iterating over a hierarchical grid to find distances smaller than some threshold.
 Zero-crossing points are collected and uploaded to an openGL vertex buffer, then drawn.
 
-[![## **Video**](http://img.youtube.com/vi/PMKJSMjiwCs/0.jpg)](http://www.youtube.com/watch?v=PMKJSMjiwCs)
+## **Video**
+
+[![](http://img.youtube.com/vi/PMKJSMjiwCs/0.jpg)](http://www.youtube.com/watch?v=PMKJSMjiwCs)
 
 ## __Controls:__
+
 * mouse movement: look around
 * left click: apply brush additively
 * right click: apply brush subtractively
@@ -24,6 +27,7 @@ Zero-crossing points are collected and uploaded to an openGL vertex buffer, then
 * ESC: close program
 
 ## __Dependencies:__
+
 * OpenGL 3.3
 * glew
 * glfw3
@@ -32,6 +36,7 @@ Zero-crossing points are collected and uploaded to an openGL vertex buffer, then
 * cmake
   
 ## __Building:__
+
 * mkdir build
 * cd build
 * cmake .. -G <your platform>
@@ -39,5 +44,6 @@ Zero-crossing points are collected and uploaded to an openGL vertex buffer, then
 * cmake --build build --config Release
 
 ## __Running:__
+
 * cd bin
 * ./main <width> <height> 
