@@ -21,7 +21,7 @@ file(GLOB GLSL_FILES "src/*.glsl")
 # compile flags and library locations
 if(WIN32)
     set(CMAKE_CXX_FLAGS_RELEASE "/O2")
-    set(CMAKE_CXX_FLAGS "/EHsc /W3 /MT")
+    set(CMAKE_CXX_FLAGS "/EHsc /W3 /MT /std:c++latest")
     include_directories(${CMAKE_SOURCE_DIR}/include)
     link_directories(${CMAKE_SOURCE_DIR}/lib "C:/Program Files (x86)/Microsoft SDKs/Windows/v7.1A/Lib/x64")
     set(PROJECT_LINK_LIBS glfw3dll glew32 OpenGL32 )

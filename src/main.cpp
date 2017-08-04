@@ -30,8 +30,7 @@ class Worker{
     vector<thread> threads;
     hybrid_mutex thread_mtex;
     condition_variable_any cvar;
-    oct::OctNode* root;
-    CircularQueue<CSG*, 128> queue;
+    CircularQueue<CSG, 128> queue;
     bool run;
     inline bool empty(){
         return queue.empty();
@@ -43,11 +42,12 @@ class Worker{
         while(run){
             unique_lock<hybrid_mutex> lock(thread_mtex);
             cvar.wait(lock, [this]{return !Worker::empty() || !run;});
-			if (!run)return;
-            while(!empty()){
-                root->insert(queue.pop());
+            while(run && !empty()){
+                oct::insert(queue.pop());
             }
-            oct::LEAF_DATA.remesh();
+            if(run){
+                oct::g_leafData.remesh();
+            }
         }
     }
 public:
@@ -58,8 +58,8 @@ public:
             i.join();
         }
 	}
-    Worker(oct::OctNode* _root)
-        : root(_root), run(true){
+    Worker()
+        : run(true){
         for(int i = 0; i < 4; i++){
             threads.push_back(thread(&Worker::kernel, this));
         }
@@ -67,10 +67,9 @@ public:
     ~Worker(){
 		quit();
     }
-    inline void insert(CSG* csg){
+    inline void insert(const CSG& csg){
         if(full()){ // avoid overflow
             puts("Worker thread circular buffer overflow");
-            delete csg;
             return;
         }
 
@@ -138,12 +137,20 @@ int main(int argc, char* argv[]){
     unsigned i = 0;
     float t = (float)glfwGetTime();
     int waitcounter = 2;
-    bool box = false;
 
-    Worker worker(&root);
+    Worker worker;
 
     Mesh brush_mesh;
     VertexBuffer brush_vb;
+
+    CSG_Type csg_type;
+    csg_type.blend = blend_t::SMOOTH_ADD;
+    constexpr int shape_count = 2;
+    int shape_idx = 0;
+    shape_t shapes[shape_count] = {
+        SPHERE,
+        BOX,
+    };
 
     while(window.open()){
         input.poll(frameBegin(i, t), camera);
@@ -164,7 +171,10 @@ int main(int argc, char* argv[]){
         if(glfwGetKey(window.getWindow(), GLFW_KEY_RIGHT)){ smoothness *= 1.1f; smoothness = smoothness >= 0.5f ? 0.5f : smoothness;}
         else if(glfwGetKey(window.getWindow(), GLFW_KEY_LEFT)){ smoothness *= 0.9f;}
 
-	    if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { box = !box; waitcounter = 10;}
+	    if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { 
+            csg_type.shape = shapes[++shape_idx % shape_count];
+            waitcounter = 10;
+        }
 
 	    if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_7)) { color.x *= 1.1f;}
 	    else if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_4)) { color.x *= 0.9f;}
@@ -175,24 +185,52 @@ int main(int argc, char* argv[]){
         color = glm::clamp(glm::vec3(0.0f), glm::vec3(1.0f), color);
 
         {   // rebuild brush at new looking point
-    	    CSG item = {at, vec3(bsize), color, 0.0f, box ? BOXADD : SPHEREADD};
+    	    CSG item = {
+                {
+                    at, 
+                    vec3(bsize), 
+                    color, 
+                    smoothness * bsize
+                },
+                csg_type
+            };
             brush_vb.clear();
             fillCells(brush_vb, item, at, bsize);
             brush_mesh.update(brush_vb);
         }
 
         if(input.leftMouseDown() && waitcounter < 0){
-            worker.insert(new CSG({at, vec3(bsize), color, smoothness * bsize, box ? BOXSADD : SPHERESADD}));
+            csg_type.blend = blend_t::SMOOTH_ADD;
+            CSG item = {
+                {
+                    at, 
+                    vec3(bsize), 
+                    color, 
+                    smoothness * bsize
+                },
+                csg_type
+            };
+            worker.insert(item);
             waitcounter = 1 + int(bsize * 4.0f);
         }
         else if(input.rightMouseDown() && waitcounter < 0){
-            worker.insert(new CSG({at, vec3(bsize), color, smoothness * bsize, box ? BOXSSUB : SPHERESSUB}));
+            csg_type.blend = blend_t::SMOOTH_SUB;
+            CSG item = {
+                {
+                    at, 
+                    vec3(bsize), 
+                    color, 
+                    smoothness * bsize
+                },
+                csg_type
+            };
+            worker.insert(item);
             waitcounter = 1 + int(bsize * 4.0f);
         }
 
         brush_mesh.draw();
-        oct::LEAF_DATA.update();
-        oct::LEAF_DATA.draw();
+        oct::g_leafData.update();
+        oct::g_leafData.draw();
 
         window.swap();
     }

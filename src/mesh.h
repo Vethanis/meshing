@@ -9,6 +9,7 @@ class Mesh {
     bool is_init;
 public:
     Mesh() : num_vertices(0), is_init(false){};
+    ~Mesh(){ destroy(); }
     void draw();
     void update(VertexBuffer& vb);
     void init();

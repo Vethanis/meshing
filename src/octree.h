@@ -1,39 +1,39 @@
-#ifndef OCTREE_H
-#define OCTREE_H
+#pragma once
 
 #include "csg.h"
 #include "stdlib.h"
-#include <unordered_set>
 #include "circular_queue.h"
-#include "hybrid_mutex.h"
+#include <mutex>
 #include "mesh.h"
 
 namespace oct{
 
-#define LEAF_DEPTH 5
-
-struct OctNode;
+constexpr int LEAF_DEPTH = 5;
 
 struct leafData_t{
-    CSGList items;
-    VertexBuffer vb;
+    CSGIndices items;
     glm::vec3 center;
     float length;
 };
 
 struct leafData{
-    std::vector<leafData_t> data;
-    std::vector<Mesh> meshes;
-    CircularQueue<size_t, 4096> n_remesh, n_update;
-    CSGList all_ops;
+    static constexpr u16 capacity = 40000;
+
+    leafData_t data[capacity];
+    VertexBuffer buffers[capacity];
+    Mesh meshes[capacity];
+
+    CircularQueue<u16, 4096> n_remesh, n_update;
+    u16 tail;
+
+    leafData() : tail(0){};
 
     inline void remesh(){
         while(!n_remesh.empty()){
-            auto i = n_remesh.pop();
+            u16 i = n_remesh.pop();
             {
                 leafData_t& item = data[i];
-                item.vb.clear();
-                fillCells(item.vb, item.items, item.center, item.length);
+                fillCells(buffers[i], item.items, item.center, item.length);
             }
             while(n_update.full()){};
             n_update.push(i);
@@ -42,117 +42,124 @@ struct leafData{
     // gl thread only
     inline void update(){
         while(!n_update.empty()){
-            auto i = n_update.pop();
-            meshes[i].update(data[i].vb);
+            u16 i = n_update.pop();
+            meshes[i].update(buffers[i]);
         }
     }
     // gl thread only
     inline void draw(){
-        for(auto& i : meshes){
+        for(Mesh& i : meshes){
             i.draw();
         }
     }
 
-    inline size_t append(const leafData_t& item){
-        data.push_back(item);
-        meshes.push_back({});
-        return data.size() - 1;
+    inline u16 append(const glm::vec3& center, float radius){
+        if(tail >= capacity){
+            puts("Ran out of capacity in leafData::append()");
+            return tail - 1;
+        }
+        data[tail].center = center;
+        data[tail].length = radius;
+        return tail++;
     }
 
-    inline void insert_CSG(size_t i, CSG* item){
-        {
-            data[i].items.push_back(item);
-        }
+    inline void insert_CSG(u16 leaf, u16 csg){
+        data[leaf].items.push_back(csg);
         while(n_remesh.full()){
             remesh();
         }
-        n_remesh.set_push(i);
-    }
-
-    inline void capture_CSG(CSG* op){
-        all_ops.push_back(op);
-    }
-
-    ~leafData(){
-        for(auto& i : meshes){
-            i.destroy();
-        }
-        for(CSG* i : all_ops){
-            delete i;
-        }
+        n_remesh.set_push(leaf);
     }
 };
 
-static leafData LEAF_DATA;
-
-static float octlen = 8.0f;
+extern leafData g_leafData;
 
 struct OctNode{
-    OctNode* children;
-    size_t id;
     glm::vec3 center;
-    int depth;
-    hybrid_mutex mut;
-    float length(){
-        float len = octlen;
-        for(int i = 0; i < depth; i++)
-            len *= 0.5f;
-        return len;
-    }
+    float radius;
+    u16 children[8];
+    u16 leaf_id;
+    u16 depth;
+    bool hasChildren;
     float qlen(){
         // ratio of cube's side to diagonal: sqrt(len^2 + len^2 + len^2) => sqrt(len^2 * 3) => x * sqrt(3)
-        return 1.732051f * this->length();
+        return 1.732051f * radius;
     }
-    // always instantiate root node with depth 0
-    OctNode(const glm::vec3& c, int d=0)
-        : children(nullptr), id(0), center(c), depth(d){
-        if(depth == LEAF_DEPTH){ // if a leaf
-            id = LEAF_DATA.append({{}, {}, center, length()});
-        }
-    }
-    ~OctNode(){
-        if(children){
-            for(int i = 0; i < 8; i++)
-                (children + i)->~OctNode();
-            free(children);
-        }
+    void deInit();
+    OctNode(const glm::vec3& c=glm::vec3(0.0f), float _radius=8.0f, u16 d=0)
+        : center(c),
+        radius(_radius),
+        leaf_id(-1),
+        depth(d),
+        hasChildren(false)
+    {
+
     }
     inline bool isLeaf(){return depth == LEAF_DEPTH;}
     inline bool isRoot(){return !depth;}
-    inline void makeChildren(){
-        if(children)return;
-        std::lock_guard<hybrid_mutex> lock(mut);
-        if(children)return;
-        const float nlen = length() * 0.5f;
-        children = (OctNode*)malloc(sizeof(OctNode) * 8);
-        for(int i = 0; i < 8; i++){
-            glm::vec3 n_c(center);
-            n_c.x += (i&4) ? nlen : -nlen;
-            n_c.y += (i&2) ? nlen : -nlen;
-            n_c.z += (i&1) ? nlen : -nlen;
-            new (children + i) OctNode(n_c, depth + 1);
+    inline void makeChildren();
+    inline void insert(const CSG& item, u16 csg_id = 0);
+};
+
+constexpr u16 max_octnodes = 30000;
+static u16 octnodes_tail = 0;
+extern OctNode g_octNode[max_octnodes];
+extern std::mutex g_octNode_mut;
+
+void OctNode::makeChildren(){
+    std::lock_guard<std::mutex> lock(g_octNode_mut);
+    const float nlen = radius * 0.5f;
+    for(int i = 0; i < 8; i++){
+        glm::vec3 n_c(center);
+        n_c.x += (i&4) ? nlen : -nlen;
+        n_c.y += (i&2) ? nlen : -nlen;
+        n_c.z += (i&1) ? nlen : -nlen;
+
+        children[i] = octnodes_tail;
+        OctNode& child = g_octNode[octnodes_tail++];
+        child = OctNode(n_c, nlen, depth + 1);
+
+        if(child.isLeaf()){
+            child.leaf_id = g_leafData.append(child.center, child.radius);
+        }
+
+        if(octnodes_tail >= max_octnodes){
+            puts("Ran out of octnodes in makeChildren");
+            return;
         }
     }
-    // always pass an item on the heap here
-    inline void insert(CSG* item){
-        if(isRoot()){
-            LEAF_DATA.capture_CSG(item);
-        }
-        if(item->func(center) >= qlen() + item->smoothness){
-            return;
-        }
-        if(isLeaf()){
-            LEAF_DATA.insert_CSG(id, item);
-            return;
-        }
+    hasChildren = true;
+}
+
+void OctNode::insert(const CSG& item, u16 csg_id){
+    if(item.func(center) >= qlen() + item.param.smoothness){
+        return;
+    }
+    if(isLeaf()){
+        g_leafData.insert_CSG(leaf_id, csg_id);
+        return;
+    }
+    if(isRoot()){
+        g_CSG[csg_tail] = item;
+        csg_id = csg_tail++;    
+        if(csg_tail >= max_csgs){
+        puts("Ran out of room for CSG's in oct::insert();");
+    }
+    }
+    if(!hasChildren){
         makeChildren();
-        for(int i = 0; i < 8; i++)
-            children[i].insert(item);
     }
+    for(int i = 0; i < 8; i++){
+        u16 index = children[i];
+        OctNode& child = g_octNode[index];
+        child.insert(item, csg_id);
+    }
+}
+
+extern OctNode g_rootNode;
+
+inline void insert(const CSG& item){
+    g_rootNode.insert(item);
+}
 
 };
-
-
-};
-
-#endif // OCTREE_H

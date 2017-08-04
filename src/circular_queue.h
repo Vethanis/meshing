@@ -2,11 +2,12 @@
 
 #include <atomic>
 #include <cassert>
+#include "ints.h"
 
-template<typename T, size_t capacity>
+template<typename T, u16 capacity>
 class CircularQueue{
     T* data;
-    std::atomic<size_t> head, tail;
+    std::atomic<u16> head, tail;
 public:
     CircularQueue() : head(0), tail(0){
         assert( ( (capacity-1) & capacity ) == 0);
@@ -21,7 +22,7 @@ public:
     inline bool full(){
         return ((head + 1) & (capacity - 1)) == tail;
     }
-    inline size_t count(){
+    inline u16 count(){
         if(head < tail){
             return (capacity - tail) + head;
         }
@@ -32,7 +33,7 @@ public:
         head = ((head + 1) & (capacity - 1));
     }
     inline void set_push(const T& item){
-        for(size_t i = tail; i != head; i = (i + 1) & (capacity - 1)){
+        for(u16 i = tail; i != head; i = (i + 1) & (capacity - 1)){
             if(data[i] == item){
                 return;
             }
