@@ -9,6 +9,7 @@ layout(std140) uniform UniBlock
 	vec4 eye;
 	vec4 light_pos;
     ivec4 seed;
+    vec4 mat_params;
 };
 
 out vec4 out_color;

@@ -23,7 +23,12 @@ struct Uniforms{
     mat4 MVP;
     vec4 eye;
     vec4 light_pos;
-	ivec4 seed;
+    ivec4 seed;
+    vec4 mat_params;
+
+    Uniforms(){
+        mat_params = vec4(0.5);
+    }
 };
 
 class Worker{
@@ -183,6 +188,12 @@ int main(int argc, char* argv[]){
 	    if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_9)) { color.z *= 1.1f;}
 	    else if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_6)) { color.z *= 0.9f;}
         color = glm::clamp(glm::vec3(0.0f), glm::vec3(1.0f), color);
+
+        if(glfwGetKey(window.getWindow(), GLFW_KEY_F1)){ uni.mat_params.x *= 1.1f; }
+        else if(glfwGetKey(window.getWindow(), GLFW_KEY_F2)){ uni.mat_params.x *= 0.9f; }
+        if(glfwGetKey(window.getWindow(), GLFW_KEY_F3)){ uni.mat_params.y *= 1.1f; }
+        else if(glfwGetKey(window.getWindow(), GLFW_KEY_F4)){ uni.mat_params.y *= 0.9f; }
+        uni.mat_params = glm::clamp(uni.mat_params, 0.01f, 0.99f);
 
         {   // rebuild brush at new looking point
     	    CSG item = {
