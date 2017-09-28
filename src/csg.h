@@ -114,23 +114,23 @@ struct CSG {
     }
 };
 
-constexpr u16 max_csgs = 20000;
-static u16 csg_tail = 0;
+constexpr u32 max_csgs = 20000;
+static u32 csg_tail = 0;
 extern CSG g_CSG[max_csgs];
 
 struct CSGIndices {
-    static constexpr u16 capacity = 512;
-    u16 indices[capacity];
-    u16 tail;
+    static constexpr u32 capacity = 512;
+    u32 indices[capacity];
+    u32 tail;
     CSGIndices() : tail(0){};
-    u16 size() const {return tail;}
-    CSG& get(u16 index) const {
+    u32 size() const {return tail;}
+    CSG& get(u32 index) const {
         return g_CSG[indices[index]];
     }
-    CSG& operator[](u16 index) const {
+    CSG& operator[](u32 index) const {
         return get(index);
     }
-    void push_back(u16 id){
+    void push_back(u32 id){
         if(tail >= capacity){
             puts("Ran out of room in CSGIndices::push_back()");
             return;
@@ -138,9 +138,9 @@ struct CSGIndices {
         indices[tail++] = id;
     }
     maphit map(const glm::vec3& p) const {
-        maphit a = {u16(-1), FLT_MAX};
-        for(u16 i = 0; i < size(); i++){
-            u16 index = indices[i];
+        maphit a = {u32(-1), FLT_MAX};
+        for(u32 i = 0; i < size(); i++){
+            u32 index = indices[i];
             CSG& csg = g_CSG[index];
             maphit b = { 
                 index, 
@@ -177,21 +177,13 @@ inline void fillInd(VertexBuffer& vb, const CSGIndices& list, const glm::vec3& c
         return;
     }
 
-    CSGIndices pruned;
-    if(list.size() > 3 && depth){
-        for(u16 i = 0; i < list.tail; i++){
-            if(list[i].func(center) < radius * 1.732051f + list[i].param.smoothness)
-                pruned.push_back(i);
-        }
-    }
-
     const float hr = radius * 0.5f;
     for(int i = 0; i < 8; i++){
         glm::vec3 c(center);
         c.x += (i & 4) ? hr : -hr;
         c.y += (i & 2) ? hr : -hr;
         c.z += (i & 1) ? hr : -hr;
-        fillInd(vb, pruned.size() ? pruned : list, c, hr, depth + 1);
+        fillInd(vb, list, c, hr, depth + 1);
     }
 }
 

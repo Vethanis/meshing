@@ -16,7 +16,7 @@ flat out int valid;
 
 void main() {
 	gl_Position = MVP * vec4(position, 1);
-	gl_PointSize = clamp(25.0f / gl_Position.w, 1.0f, 500.0f);
+	gl_PointSize = clamp(70.0f / gl_Position.w, 1.0f, 500.0f);
 
     vec3 V = eye.xyz - position;
     if(dot(V, normal) <= 0.0){
