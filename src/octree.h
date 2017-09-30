@@ -37,7 +37,6 @@ struct OctNode {
 
 struct leafData {
     static constexpr u32 capacity = 1 << (3 * 6);
-    static constexpr u32 queueSize = 4096;
     static constexpr u32 max_threads = 4;
     
     struct Leaf {
@@ -59,42 +58,23 @@ struct leafData {
         }
     };
 
-    struct State {
-        Array<u32, queueSize> remesh_queue;
-        Array<u32, queueSize> update_queue;
-        std::mutex update_mtx;
-    };
-
     Array<Leaf, capacity> leaves;
-    State states[max_threads];
-
-    std::mutex items_mtx;
+    CircularQueue<u32, capacity> n_remesh, n_update;
 
     inline void remesh(const CSGSet& set, int thread_id){
-        State& state = states[thread_id];
-        std::lock_guard<std::mutex> guard(state.update_mtx);
-
-        for(u32 i : state.remesh_queue){
+        while(n_remesh.empty() == false){
+            u32 i = n_remesh.pop();
             leaves[i].remesh(set);
-            if(state.update_queue.full()){
-                puts("update queue too small!");
-                return;
-            }
-            state.update_queue.grow() = i;
+
+            while(n_update.full()){};
+            n_update.push(i);
         }
-        state.remesh_queue.clear();
     }
     // gl thread only
     inline void update(){
-        for(State& state : states){
-            if(state.update_mtx.try_lock()){
-                for(u32 i : state.update_queue){
-                    leaves[i].update();
-                }
-    
-                state.update_queue.clear();
-                state.update_mtx.unlock();
-            }
+        while(n_update.empty() == false){
+            u32 i = n_update.pop();
+            leaves[i].update();
         }
     }
     // gl thread only
@@ -116,12 +96,8 @@ struct leafData {
     inline void insert(u32 i, u32 csg, int thread_id){
         Leaf& leaf = leaves[i];
         if(leaf.indices.push_back(csg)){
-            State& state = states[thread_id];
-            if(state.remesh_queue.full()){
-                puts("ran out of remesh queue slots");
-                return;
-            }
-            state.remesh_queue.grow() = i;
+            while(n_remesh.full()){};
+            n_remesh.push(i);
         }
     }
 };
@@ -151,7 +127,9 @@ struct OctScene {
     inline void draw(){
         m_leafData.draw();
     }
-
+    inline bool hasWork(){
+        return m_leafData.n_remesh.empty() == false;
+    }
 };
 
 void OctNode::makeChildren(OctScene& scene){

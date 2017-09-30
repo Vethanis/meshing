@@ -149,9 +149,9 @@ struct Vector{
         assert(_tail < _capacity);
         return _data[_tail++];
     }
-    T& grow(int step = 16){
+    T& grow(){
         if(_tail >= _capacity){
-            resize(_tail + step);
+            resize((_capacity << 1) + 16);
         }
         return _data[_tail++];
     }

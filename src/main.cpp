@@ -48,8 +48,8 @@ class Worker{
     void kernel(int id){
         while(run){
             unique_lock<hybrid_mutex> lock(thread_mtex);
-            cvar.wait(lock, [this]{return !Worker::empty() || !run;});
-            while(run && !empty()){
+            cvar.wait(lock, [this]{return !Worker::empty() || scene->hasWork() || !run;});
+            while(run && !queue.empty()){
                 scene->insert(queue.pop(), id);
             }
             if(run){
@@ -216,12 +216,12 @@ int main(int argc, char* argv[]){
         if(input.leftMouseDown() && waitcounter < 0){
             cur_edit.type.blend = blend_t::SMOOTH_ADD;
             worker.insert(cur_edit);
-            waitcounter = 1 + int(cur_edit.param.size.x * 5.0f);
+            waitcounter = 1 + int(cur_edit.param.size.x * 10.0f);
         }
         else if(input.rightMouseDown() && waitcounter < 0){
             cur_edit.type.blend = blend_t::SMOOTH_SUB;
             worker.insert(cur_edit);
-            waitcounter = 1 + int(cur_edit.param.size.x * 5.0f);
+            waitcounter = 1 + int(cur_edit.param.size.x * 10.0f);
         }
 
         brush_mesh.draw();
