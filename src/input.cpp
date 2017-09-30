@@ -26,6 +26,7 @@ void Input::poll(){
 }
 
 void Input::poll(float dt, Camera& cam){
+    dt = glm::min(dt, 33.0f / 1000.0f);
     glfwPollEvents();
     glm::vec3 v(0.0f);
     v.z -= glfwGetKey(m_glwindow, GLFW_KEY_W) ? dt : 0.0f;

@@ -24,14 +24,17 @@ float randUni(inout int sd){
 }
 
 void main(){
-    if(valid == 0)
+    if(valid == 0){
         discard;
+        return;
+    }
 
     int s = int(dot(gl_FragCoord.xy, gl_PointCoord.xy) * float(seed.x));
     vec2 coord = gl_PointCoord * 2.0 - 1.0;
 
     if(length(coord) > randUni(s)){
         discard;
+        return;
     }
 
     out_color = vec4(fragColor, 1.0);

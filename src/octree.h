@@ -8,8 +8,10 @@
 
 namespace oct{
 
+struct OctScene;
+
 struct OctNode{
-    static constexpr u32 LEAF_DEPTH = 6;
+    static constexpr u32 LEAF_DEPTH = 7;
 
     glm::vec3 center;
     float radius;
@@ -18,7 +20,7 @@ struct OctNode{
     u32 depth;
     bool hasChildren;
 
-    OctNode(const glm::vec3& c=glm::vec3(0.0f), float _radius=8.0f, u32 d=0)
+    OctNode(const glm::vec3& c=glm::vec3(0.0f), float _radius=16.0f, u32 d=0)
         : center(c),
         radius(_radius),
         leaf_id(-1),
@@ -29,134 +31,168 @@ struct OctNode{
     inline float qlen(){ return 1.732051f * radius; }
     inline bool isLeaf(){return depth == LEAF_DEPTH;}
     inline bool isRoot(){return !depth;}
-    inline void makeChildren();
-    inline void insert(const CSG& item, u32 csg_id = 0);
-    inline void deInit();
-};
-
-struct leafData_t{
-    CSGIndices items;
-    const OctNode* node;
+    inline void makeChildren(OctScene& scene);
+    inline void insert(const CSG& item, u32 csg_id, int thread_id, OctScene& scene);
 };
 
 struct leafData{
     static constexpr u32 capacity = 1 << (3 * 6);
+    static constexpr u32 queueSize = 1024;
+    static constexpr u32 max_threads = 4;
+    
+    struct Leaf {
+        CSGIndices indices;
+        VertexBuffer vb;
+        const OctNode* node;
+        Mesh mesh;
 
-    leafData_t data[capacity];
-    VertexBuffer buffers[capacity];
-    Mesh meshes[capacity];
-
-    CircularQueue<u32, 4096> n_remesh, n_update;
-    u32 tail;
-
-    leafData() : tail(0){};
-
-    inline void remesh(){
-        while(!n_remesh.empty()){
-            u32 i = n_remesh.pop();
-            {
-                leafData_t& item = data[i];
-                fillCells(buffers[i], item.items, item.node->center, item.node->radius);
-            }
-            while(n_update.full()){};
-            n_update.push(i);
+        inline void remesh(const Vector<CSG>& set){
+            fillCells(vb, set, indices, node->center, node->radius);
         }
+        // gl thread only
+        inline void update(){
+            mesh.update(vb);
+        }
+		// gl thread only
+        inline void draw(){
+            mesh.draw();
+        }
+    };
+
+    struct State {
+        Array<u32, queueSize> remesh_queue;
+        Array<u32, queueSize> update_queue;
+        std::mutex update_mtx;
+    };
+
+    Array<Leaf, capacity> leaves;
+    State states[max_threads];
+
+    std::mutex items_mtx;
+
+    inline void remesh(const Vector<CSG>& set, int thread_id){
+        State& state = states[thread_id];
+        std::lock_guard<std::mutex> guard(state.update_mtx);
+
+        for(u32 i : state.remesh_queue){
+            leaves[i].remesh(set);
+            if(state.update_queue.full()){
+                puts("update queue too small!");
+                return;
+            }
+            state.update_queue.grow() = i;
+        }
+        state.remesh_queue.clear();
     }
     // gl thread only
     inline void update(){
-        while(!n_update.empty()){
-            u32 i = n_update.pop();
-            meshes[i].update(buffers[i]);
+        for(State& state : states){
+            if(state.update_mtx.try_lock()){
+                for(u32 i : state.update_queue){
+                    leaves[i].update();
+                }
+    
+                state.update_queue.clear();
+                state.update_mtx.unlock();
+            }
         }
     }
     // gl thread only
     inline void draw(){
-        for(Mesh& i : meshes){
+        for(auto& i : leaves){
             i.draw();
         }
     }
 
     inline u32 append(const OctNode* node){
-        if(tail >= capacity){
+        if(leaves.full()){
             puts("Ran out of capacity in leafData::append()");
-            return tail - 1;
+            return 0;
         }
-        const u32 idx = tail++;
-        data[idx].node = node;
-        return idx;
+        leaves.grow().node = node;
+        return leaves.count() - 1;
     }
 
-    inline void insert_CSG(u32 leaf, u32 csg){
-        data[leaf].items.push_back(csg);
-        while(n_remesh.full()){
-            remesh();
+    inline void insert(u32 i, u32 csg, int thread_id){
+        Leaf& leaf = leaves[i];
+        if(leaf.indices.push_back(csg)){
+            State& state = states[thread_id];
+            state.remesh_queue.grow() = i;
         }
-        n_remesh.set_push(leaf);
     }
 };
 
-extern leafData g_leafData;
+struct OctScene {
+    static constexpr u32 max_octnodes = 1 << (3 * 6);
 
-constexpr u32 max_octnodes = 1 << (3 * 6);
-static u32 octnodes_tail = 0;
-extern OctNode g_octNode[max_octnodes];
-extern std::mutex g_octNode_mut;
+    leafData m_leafData;
+    Array<OctNode, max_octnodes> m_octNodes;
+    Vector<CSG> csgs;
+    std::mutex m_octNodes_mut;
 
-void OctNode::makeChildren(){
-    std::lock_guard<std::mutex> lock(g_octNode_mut);
+    OctScene(){
+        m_octNodes.grow() = OctNode();
+    }
+    inline void insert(const CSG& csg, int thread_id){
+		m_octNodes[0].insert(csg, 0, thread_id, *this);
+    }
+    inline void remesh(int thread_id){
+        m_leafData.remesh(csgs, thread_id);
+    }
+    // main thread only
+    inline void update(){
+        m_leafData.update();
+    }
+    // main thread only
+    inline void draw(){
+        m_leafData.draw();
+    }
+
+};
+
+void OctNode::makeChildren(OctScene& scene){
+    std::lock_guard<std::mutex> lock(scene.m_octNodes_mut);
     const float nlen = radius * 0.5f;
     for(int i = 0; i < 8; i++){
+        if(scene.m_octNodes.full()){
+            puts("Ran out of octnodes in makeChildren");
+            return;
+        }
+
         glm::vec3 n_c(center);
         n_c.x += (i&4) ? nlen : -nlen;
         n_c.y += (i&2) ? nlen : -nlen;
         n_c.z += (i&1) ? nlen : -nlen;
 
-        children[i] = octnodes_tail;
-        ++octnodes_tail;
-        OctNode& child = g_octNode[children[i]];
+        children[i] = scene.m_octNodes.count();
+        OctNode& child = scene.m_octNodes.grow();
         child = OctNode(n_c, nlen, depth + 1);
 
         if(child.isLeaf()){
-            child.leaf_id = g_leafData.append(this);
-        }
-
-        if(octnodes_tail >= max_octnodes){
-            puts("Ran out of octnodes in makeChildren");
-            return;
+            child.leaf_id = scene.m_leafData.append(&child);
         }
     }
     hasChildren = true;
 }
 
-void OctNode::insert(const CSG& item, u32 csg_id){
+void OctNode::insert(const CSG& item, u32 csg_id, int thread_id, OctScene& scene){
     if(item.func(center) >= qlen() + item.param.smoothness){
         return;
     }
     if(isLeaf()){
-        g_leafData.insert_CSG(leaf_id, csg_id);
+        scene.m_leafData.insert(leaf_id, csg_id, thread_id);
         return;
     }
     if(isRoot()){
-        if(csg_tail >= max_csgs){
-            puts("Ran out of room for CSG's in oct::insert();");
-            return;
-        }
-        csg_id = csg_tail;
-        ++csg_tail;
-        g_CSG[csg_id] = item;
+        csg_id = scene.csgs.count();
+        scene.csgs.grow() = item;
     }
     if(!hasChildren){
-        makeChildren();
+        makeChildren(scene);
     }
     for(int i = 0; i < 8; i++){
-        g_octNode[children[i]].insert(item, csg_id);
+        scene.m_octNodes[children[i]].insert(item, csg_id, thread_id, scene);
     }
-}
-
-extern OctNode g_rootNode;
-
-inline void insert(const CSG& item){
-    g_rootNode.insert(item);
 }
 
 };

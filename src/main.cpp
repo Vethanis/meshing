@@ -32,10 +32,12 @@ struct Uniforms{
 };
 
 class Worker{
-    vector<thread> threads;
+    static constexpr u32 num_threads = 4;
+    Array<thread, num_threads> threads;
     hybrid_mutex thread_mtex;
     condition_variable_any cvar;
     CircularQueue<CSG, 128> queue;
+    oct::OctScene* scene;
     bool run;
     inline bool empty(){
         return queue.empty();
@@ -43,15 +45,15 @@ class Worker{
     inline bool full(){
         return queue.full();
     }
-    void kernel(){
+    void kernel(int id){
         while(run){
             unique_lock<hybrid_mutex> lock(thread_mtex);
             cvar.wait(lock, [this]{return !Worker::empty() || !run;});
             while(run && !empty()){
-                oct::insert(queue.pop());
+                scene->insert(queue.pop(), id);
             }
             if(run){
-                oct::g_leafData.remesh();
+                scene->remesh(id);
             }
         }
     }
@@ -63,10 +65,11 @@ public:
             i.join();
         }
 	}
-    Worker()
-        : run(true){
-        for(int i = 0; i < 4; i++){
-            threads.push_back(thread(&Worker::kernel, this));
+    Worker(oct::OctScene& _scene) : 
+        scene(&_scene),
+        run(true){
+        for(int i = 0; i < num_threads; i++){
+            threads.grow() = thread(&Worker::kernel, this, i);
         }
     }
     ~Worker(){
@@ -83,7 +86,6 @@ public:
     }
 };
 
-
 float frameBegin(unsigned& i, float& t){
     float dt = (float)glfwGetTime() - t;
     t += dt;
@@ -98,11 +100,13 @@ float frameBegin(unsigned& i, float& t){
     return dt;
 }
 
+static oct::OctScene scene;
+
 int main(int argc, char* argv[]){
 	srand(unsigned(time(0)));
 
-    int WIDTH = 1280;
-    int HEIGHT = 720;
+    int WIDTH = int(1920.0f * 1.5f);
+    int HEIGHT = int(1080.0f * 1.5f);
 
     if(argc >= 3){
         WIDTH = atoi(argv[1]);
@@ -118,8 +122,8 @@ int main(int argc, char* argv[]){
     Window window(WIDTH, HEIGHT, 3, 3, "Meshing");
     Input input(window.getWindow());
     GLProgram colorProg;
-    colorProg.addShader("vert.glsl", GL_VERTEX_SHADER);
-    colorProg.addShader("frag.glsl", GL_FRAGMENT_SHADER);
+    colorProg.addShader("assets/vert.glsl", GL_VERTEX_SHADER);
+    colorProg.addShader("assets/frag.glsl", GL_FRAGMENT_SHADER);
     colorProg.link();
     colorProg.bind();
 
@@ -135,21 +139,16 @@ int main(int argc, char* argv[]){
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_PROGRAM_POINT_SIZE);
 
-    float bsize = 0.05f, smoothness = 0.333f;
-    glm::vec3 color = {0.5f, 0.5f, 0.5f};
-
     input.poll();
     unsigned i = 0;
     float t = (float)glfwGetTime();
     int waitcounter = 2;
 
-    Worker worker;
+    Worker worker(scene);
 
     Mesh brush_mesh;
     VertexBuffer brush_vb;
 
-    CSG_Type csg_type;
-    csg_type.blend = blend_t::SMOOTH_ADD;
     constexpr int shape_count = 2;
     int shape_idx = 0;
     shape_t shapes[shape_count] = {
@@ -157,11 +156,13 @@ int main(int argc, char* argv[]){
         BOX,
     };
 
+    CSG cur_edit;
     while(window.open()){
         input.poll(frameBegin(i, t), camera);
         waitcounter--;
 
-        glm::vec3 at = camera.getEye() + (1.0f + (2.0f * bsize)) * camera.getAxis();
+        glm::vec3 at = camera.getEye() + (1.0f + (2.0f * cur_edit.param.size.x)) * camera.getAxis();
+        cur_edit.param.center = at;
 
         uni.MVP = camera.getVP();
         uni.eye = vec4(camera.getEye(), 0.0f);
@@ -171,77 +172,61 @@ int main(int argc, char* argv[]){
 		uni.seed.x = rand();
         unibuf.upload(&uni, sizeof(uni));
 
-        if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ bsize *= 1.1f;}
-        else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ bsize *= 0.9f;}
-        if(glfwGetKey(window.getWindow(), GLFW_KEY_RIGHT)){ smoothness *= 1.1f; smoothness = smoothness >= 0.5f ? 0.5f : smoothness;}
-        else if(glfwGetKey(window.getWindow(), GLFW_KEY_LEFT)){ smoothness *= 0.9f;}
+        if(glfwGetKey(window.getWindow(), GLFW_KEY_UP)){ cur_edit.param.size *= 1.1f;}
+        else if(glfwGetKey(window.getWindow(), GLFW_KEY_DOWN)){ cur_edit.param.size *= 0.9f;}
+        if(glfwGetKey(window.getWindow(), GLFW_KEY_RIGHT)){ 
+            cur_edit.param.smoothness *= 1.1f; 
+            cur_edit.param.smoothness = glm::clamp(
+                cur_edit.param.smoothness, 
+                0.0f, 0.1f);
+        }
+        else if(glfwGetKey(window.getWindow(), GLFW_KEY_LEFT)){ 
+            cur_edit.param.smoothness *= 0.9f;
+            cur_edit.param.smoothness = glm::clamp(
+                cur_edit.param.smoothness, 
+                0.0f, 0.1f);
+        }
 
 	    if (glfwGetKey(window.getWindow(), GLFW_KEY_1) && waitcounter < 0) { 
-            csg_type.shape = shapes[++shape_idx % shape_count];
+            cur_edit.type.shape = shapes[++shape_idx % shape_count];
             waitcounter = 10;
         }
 
-	    if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_7)) { color.x *= 1.1f;}
-	    else if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_4)) { color.x *= 0.9f;}
-	    if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_8)) { color.y *= 1.1f;}
-	    else if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_5)) { color.y *= 0.9f;}
-	    if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_9)) { color.z *= 1.1f;}
-	    else if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_6)) { color.z *= 0.9f;}
-        color = glm::clamp(glm::vec3(0.0f), glm::vec3(1.0f), color);
+	    if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_7)) { cur_edit.param.color.x *= 1.1f;}
+	    else if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_4)) { cur_edit.param.color.x *= 0.9f;}
+	    if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_8)) { cur_edit.param.color.y *= 1.1f;}
+	    else if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_5)) { cur_edit.param.color.y *= 0.9f;}
+	    if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_9)) { cur_edit.param.color.z *= 1.1f;}
+	    else if (glfwGetKey(window.getWindow(), GLFW_KEY_KP_6)) { cur_edit.param.color.z *= 0.9f;}
+        cur_edit.param.color = glm::clamp(glm::vec3(0.0f), glm::vec3(1.0f), cur_edit.param.color);
 
-        if(glfwGetKey(window.getWindow(), GLFW_KEY_F1)){ uni.mat_params.x *= 1.1f; }
-        else if(glfwGetKey(window.getWindow(), GLFW_KEY_F2)){ uni.mat_params.x *= 0.9f; }
-        if(glfwGetKey(window.getWindow(), GLFW_KEY_F3)){ uni.mat_params.y *= 1.1f; }
-        else if(glfwGetKey(window.getWindow(), GLFW_KEY_F4)){ uni.mat_params.y *= 0.9f; }
-        uni.mat_params = glm::clamp(uni.mat_params, 0.01f, 0.99f);
+        if(glfwGetKey(window.getWindow(), GLFW_KEY_F1)){ cur_edit.param.roughness *= 1.1f; }
+        else if(glfwGetKey(window.getWindow(), GLFW_KEY_F2)){ cur_edit.param.roughness *= 0.9f; }
+        if(glfwGetKey(window.getWindow(), GLFW_KEY_F3)){ cur_edit.param.metalness *= 1.1f; }
+        else if(glfwGetKey(window.getWindow(), GLFW_KEY_F4)){ cur_edit.param.metalness *= 0.9f; }
+        cur_edit.param.roughness = glm::clamp(cur_edit.param.roughness, 0.05f, 0.95f);
+        cur_edit.param.metalness = glm::clamp(cur_edit.param.metalness, 0.05f, 0.95f);
 
         {   // rebuild brush at new looking point
-    	    CSG item = {
-                {
-                    at, 
-                    vec3(bsize), 
-                    color, 
-                    smoothness * bsize
-                },
-                csg_type
-            };
             brush_vb.clear();
-            fillCells(brush_vb, item, at, bsize);
+            fillCells(brush_vb, cur_edit, cur_edit.param.center, cur_edit.param.size.x);
             brush_mesh.update(brush_vb);
         }
 
         if(input.leftMouseDown() && waitcounter < 0){
-            csg_type.blend = blend_t::SMOOTH_ADD;
-            CSG item = {
-                {
-                    at, 
-                    vec3(bsize), 
-                    color, 
-                    smoothness * bsize
-                },
-                csg_type
-            };
-            worker.insert(item);
-            waitcounter = 1 + int(bsize * 4.0f);
+            cur_edit.type.blend = blend_t::SMOOTH_ADD;
+            worker.insert(cur_edit);
+            waitcounter = 1 + int(cur_edit.param.size.x * 5.0f);
         }
         else if(input.rightMouseDown() && waitcounter < 0){
-            csg_type.blend = blend_t::SMOOTH_SUB;
-            CSG item = {
-                {
-                    at, 
-                    vec3(bsize), 
-                    color, 
-                    smoothness * bsize
-                },
-                csg_type
-            };
-            worker.insert(item);
-            waitcounter = 1 + int(bsize * 4.0f);
+            cur_edit.type.blend = blend_t::SMOOTH_SUB;
+            worker.insert(cur_edit);
+            waitcounter = 1 + int(cur_edit.param.size.x * 5.0f);
         }
 
         brush_mesh.draw();
-        oct::g_leafData.update();
-        oct::g_leafData.draw();
+        scene.update();
+        scene.draw();
 
         window.swap();
     }

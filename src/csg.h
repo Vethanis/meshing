@@ -9,10 +9,21 @@
 #include "vertexbuffer.h"
 #include "ints.h"
 #include <cstdio>
+#include "array.h"
 
-struct CSG_Param{
+struct CSG_Param {
     glm::vec3 center, size, color;
     float smoothness;
+    float roughness;
+    float metalness;
+    CSG_Param(){
+        center = glm::vec3(0.0f);
+        size = glm::vec3(0.1f);
+        color = glm::vec3(0.5f);
+        smoothness = 0.01f;
+        roughness = 0.5f;
+        metalness = 0.5f;
+    }
 };
 
 struct maphit {
@@ -105,75 +116,72 @@ struct CSG {
         }
         return a;
     }
-    glm::vec3 normal(const glm::vec3& p) const{
-        return glm::normalize(glm::vec3(
-            func(p + glm::vec3(0.001f, 0.0f, 0.0f)) - func(p - glm::vec3(0.001f, 0.0f, 0.0f)),
-            func(p + glm::vec3(0.0f, 0.001f, 0.0f)) - func(p - glm::vec3(0.0f, 0.001f, 0.0f)),
-            func(p + glm::vec3(0.0f, 0.0f, 0.001f)) - func(p - glm::vec3(0.0f, 0.0f, 0.001f))
+    glm::vec3 normal(const glm::vec3& p)const{
+        constexpr float e = 0.001f;
+        return normalize(glm::vec3(
+            func(p + glm::vec3(e, 0.0f, 0.0f)) - func(p - glm::vec3(e, 0.0f, 0.0f)),
+            func(p + glm::vec3(0.0f, e, 0.0f)) - func(p - glm::vec3(0.0f, e, 0.0f)),
+            func(p + glm::vec3(0.0f, 0.0f, e)) - func(p - glm::vec3(0.0f, 0.0f, e))
         ));
     }
 };
 
-constexpr u32 max_csgs = 20000;
-static u32 csg_tail = 0;
-extern CSG g_CSG[max_csgs];
-
-struct CSGIndices {
-    static constexpr u32 capacity = 512;
-    u32 indices[capacity];
-    u32 tail;
-    CSGIndices() : tail(0){};
-    u32 size() const {return tail;}
-    CSG& get(u32 index) const {
-        return g_CSG[indices[index]];
-    }
-    CSG& operator[](u32 index) const {
-        return get(index);
-    }
-    void push_back(u32 id){
-        if(tail >= capacity){
-            puts("Ran out of room in CSGIndices::push_back()");
-            return;
+class CSGIndices {
+    Array<u32, 512> indices;
+public:
+    bool push_back(u32 id){
+        if(indices.full()){
+            return false;
         }
-        indices[tail++] = id;
+        if(indices.find(id) != -1)
+            return false;
+
+        indices.grow() = id;
+
+        return true;
     }
-    maphit map(const glm::vec3& p) const {
+    void clear(){
+        indices.clear();
+    }
+    s32 count() const { return indices.count(); }
+    maphit map(const glm::vec3& p, const Vector<CSG>& set) const {
         maphit a = {u32(-1), FLT_MAX};
-        for(u32 i = 0; i < size(); i++){
-            u32 index = indices[i];
-            CSG& csg = g_CSG[index];
+        for(u32 i : indices){
+            const CSG& csg = set[i];
             maphit b = { 
-                index, 
+                i, 
                 csg.func(p) 
             };
             a = csg.blend(a, b);
         }
         return a;
     }
-    glm::vec3 map_normal(const glm::vec3& p) const {
+    glm::vec3 map_normal(const glm::vec3& p, const Vector<CSG>& set) const {
+        constexpr float e = 0.001f;
         return glm::normalize(glm::vec3(
-            map(p + glm::vec3(0.001f, 0.0f, 0.0f)) - map(p - glm::vec3(0.001f, 0.0f, 0.0f)),
-            map(p + glm::vec3(0.0f, 0.001f, 0.0f)) - map(p - glm::vec3(0.0f, 0.001f, 0.0f)),
-            map(p + glm::vec3(0.0f, 0.0f, 0.001f)) - map(p - glm::vec3(0.0f, 0.0f, 0.001f))
+            map(p + glm::vec3(e, 0.0f, 0.0f), set) - map(p - glm::vec3(e, 0.0f, 0.0f), set),
+            map(p + glm::vec3(0.0f, e, 0.0f), set) - map(p - glm::vec3(0.0f, e, 0.0f), set),
+            map(p + glm::vec3(0.0f, 0.0f, e), set) - map(p - glm::vec3(0.0f, 0.0f, e), set)
         ));
     }
 };
 
-
-inline void fillInd(VertexBuffer& vb, const CSGIndices& list, const glm::vec3& center, float radius, int depth){
+inline void fillInd(VertexBuffer& vb, const Vector<CSG>& set, const CSGIndices& list, const glm::vec3& center, float radius, int depth){
     constexpr int fill_depth = 5;
 
-    maphit mh = list.map(center);
+    maphit mh = list.map(center, set);
     if(fabsf(mh.distance) > radius * 1.732051f)
         return;
 
     if(depth == fill_depth){
-        glm::vec3 N = list.map_normal(center);
-        vb.push_back({ 
+        glm::vec3 N = list.map_normal(center, set);
+        vb.grow() = { 
             center - N * mh.distance, 
             N, 
-            g_CSG[mh.id].param.color 
-        });
+            set[mh.id].param.color,
+            set[mh.id].param.roughness,
+            set[mh.id].param.metalness
+        };
         return;
     }
 
@@ -183,16 +191,16 @@ inline void fillInd(VertexBuffer& vb, const CSGIndices& list, const glm::vec3& c
         c.x += (i & 4) ? hr : -hr;
         c.y += (i & 2) ? hr : -hr;
         c.z += (i & 1) ? hr : -hr;
-        fillInd(vb, list, c, hr, depth + 1);
+        fillInd(vb, set, list, c, hr, depth + 1);
     }
 }
 
-inline void fillCells(VertexBuffer& vb, const CSGIndices& list, const glm::vec3& center, float radius){
+inline void fillCells(VertexBuffer& vb, const Vector<CSG>& set, const CSGIndices& list, const glm::vec3& center, float radius){
     vb.clear();
-    if (!list.size()){
+    if (!list.count()){
         return;
     }
-    fillInd(vb, list, center, radius, 0);
+    fillInd(vb, set, list, center, radius, 0);
 }
 
 inline void fillInd(VertexBuffer& vb, const CSG& item, const glm::vec3& center, float radius, int depth){
@@ -204,11 +212,13 @@ inline void fillInd(VertexBuffer& vb, const CSG& item, const glm::vec3& center, 
 
     if(depth == fill_depth){
         glm::vec3 N = item.normal(center);
-        vb.push_back({ 
+        vb.grow() = { 
             center - N * dis, 
             N, 
-            item.param.color 
-        });
+            item.param.color,
+            item.param.roughness,
+            item.param.metalness
+        };
         return;
     }
 
@@ -222,7 +232,7 @@ inline void fillInd(VertexBuffer& vb, const CSG& item, const glm::vec3& center, 
     }
 }
 
-inline void fillCells(VertexBuffer& vb, const CSG& item, const glm::vec3& center, float radius) {
+inline void fillCells( VertexBuffer& vb, const CSG& item, const glm::vec3& center, float radius) {
     vb.clear();
 	fillInd(vb, item, center, radius, 0);
 }
