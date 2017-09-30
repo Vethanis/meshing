@@ -6,11 +6,11 @@
 #include <mutex>
 #include "mesh.h"
 
-namespace oct{
+namespace oct {
 
 struct OctScene;
 
-struct OctNode{
+struct OctNode {
     static constexpr u32 LEAF_DEPTH = 7;
 
     glm::vec3 center;
@@ -35,7 +35,7 @@ struct OctNode{
     inline void insert(const CSG& item, u32 csg_id, int thread_id, OctScene& scene);
 };
 
-struct leafData{
+struct leafData {
     static constexpr u32 capacity = 1 << (3 * 6);
     static constexpr u32 queueSize = 1024;
     static constexpr u32 max_threads = 4;

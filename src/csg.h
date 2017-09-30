@@ -2,9 +2,6 @@
 
 #include "glm/glm.hpp"
 #include <cfloat>
-#include <vector>
-#include <functional>
-#include <algorithm>
 #include "math.h"
 #include "vertexbuffer.h"
 #include "ints.h"
@@ -127,7 +124,7 @@ struct CSG {
 };
 
 class CSGIndices {
-    Array<u32, 512> indices;
+    Array<u32, 1024> indices;
 public:
     bool push_back(u32 id){
         if(indices.full()){
