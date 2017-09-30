@@ -123,8 +123,10 @@ struct CSG {
     }
 };
 
+typedef Array<CSG, 65536> CSGSet;
+
 class CSGIndices {
-    Array<u32, 1024> indices;
+    Array<u32, 512> indices;
 public:
     bool push_back(u32 id){
         if(indices.full()){
@@ -141,7 +143,7 @@ public:
         indices.clear();
     }
     s32 count() const { return indices.count(); }
-    maphit map(const glm::vec3& p, const Vector<CSG>& set) const {
+    maphit map(const glm::vec3& p, const CSGSet& set) const {
         maphit a = {u32(-1), FLT_MAX};
         for(u32 i : indices){
             const CSG& csg = set[i];
@@ -153,7 +155,7 @@ public:
         }
         return a;
     }
-    glm::vec3 map_normal(const glm::vec3& p, const Vector<CSG>& set) const {
+    glm::vec3 map_normal(const glm::vec3& p, const CSGSet& set) const {
         constexpr float e = 0.001f;
         return glm::normalize(glm::vec3(
             map(p + glm::vec3(e, 0.0f, 0.0f), set) - map(p - glm::vec3(e, 0.0f, 0.0f), set),
@@ -163,7 +165,7 @@ public:
     }
 };
 
-inline void fillInd(VertexBuffer& vb, const Vector<CSG>& set, const CSGIndices& list, const glm::vec3& center, float radius, int depth){
+inline void fillInd(VertexBuffer& vb, const CSGSet& set, const CSGIndices& list, const glm::vec3& center, float radius, int depth){
     constexpr int fill_depth = 5;
 
     maphit mh = list.map(center, set);
@@ -192,7 +194,7 @@ inline void fillInd(VertexBuffer& vb, const Vector<CSG>& set, const CSGIndices& 
     }
 }
 
-inline void fillCells(VertexBuffer& vb, const Vector<CSG>& set, const CSGIndices& list, const glm::vec3& center, float radius){
+inline void fillCells(VertexBuffer& vb, const CSGSet& set, const CSGIndices& list, const glm::vec3& center, float radius){
     vb.clear();
     if (!list.count()){
         return;

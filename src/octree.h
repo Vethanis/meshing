@@ -37,7 +37,7 @@ struct OctNode {
 
 struct leafData {
     static constexpr u32 capacity = 1 << (3 * 6);
-    static constexpr u32 queueSize = 1024;
+    static constexpr u32 queueSize = 4096;
     static constexpr u32 max_threads = 4;
     
     struct Leaf {
@@ -46,7 +46,7 @@ struct leafData {
         const OctNode* node;
         Mesh mesh;
 
-        inline void remesh(const Vector<CSG>& set){
+        inline void remesh(const CSGSet& set){
             fillCells(vb, set, indices, node->center, node->radius);
         }
         // gl thread only
@@ -70,7 +70,7 @@ struct leafData {
 
     std::mutex items_mtx;
 
-    inline void remesh(const Vector<CSG>& set, int thread_id){
+    inline void remesh(const CSGSet& set, int thread_id){
         State& state = states[thread_id];
         std::lock_guard<std::mutex> guard(state.update_mtx);
 
@@ -117,6 +117,10 @@ struct leafData {
         Leaf& leaf = leaves[i];
         if(leaf.indices.push_back(csg)){
             State& state = states[thread_id];
+            if(state.remesh_queue.full()){
+                puts("ran out of remesh queue slots");
+                return;
+            }
             state.remesh_queue.grow() = i;
         }
     }
@@ -127,7 +131,7 @@ struct OctScene {
 
     leafData m_leafData;
     Array<OctNode, max_octnodes> m_octNodes;
-    Vector<CSG> csgs;
+    CSGSet csgs;
     std::mutex m_octNodes_mut;
 
     OctScene(){
@@ -165,7 +169,8 @@ void OctNode::makeChildren(OctScene& scene){
         n_c.z += (i&1) ? nlen : -nlen;
 
         children[i] = scene.m_octNodes.count();
-        OctNode& child = scene.m_octNodes.grow();
+        scene.m_octNodes.grow();
+        OctNode& child = scene.m_octNodes[children[i]];
         child = OctNode(n_c, nlen, depth + 1);
 
         if(child.isLeaf()){
